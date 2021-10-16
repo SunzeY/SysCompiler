@@ -328,7 +328,7 @@ public class Parser {
         }
         if (Compiler.debugging == 2) System.out.println(sym().toString());
         getSym();
-        if (!symType().equals("RPARENT")) {
+        if (!symType().equals("RPARENT") && symType().equals("INTTK")) {
             funcFParams = FuncFParams();
         }
         if (!symType().equals("RPARENT")) {
@@ -373,10 +373,11 @@ public class Parser {
         getSym();
         if (!symType().equals("LBRACK")) {
             if (Compiler.debugging == 2) System.out.println("<FuncFParam>");
-            return new FuncFParam(btype, indent, constExps, false);
+            return new FuncFParam(btype, indent, constExps, 0);
         }
         if (Compiler.debugging == 2) System.out.println(sym().toString());
         getSym();
+        int dimension = 1;
         if (!symType().equals("RBRACK")) {
             ErrorRecorder.recordError(new Error(Error.Type.miss_brace, sym(-1).getLineNum()));
             this.tokenIndex -= 1;
@@ -386,6 +387,7 @@ public class Parser {
         while (symType().equals("LBRACK")) {
             if (Compiler.debugging == 2) System.out.println(sym().toString());
             getSym();
+            dimension += 1;
             constExps.add(ConstExp());
             if (!symType().equals("RBRACK")) {
                 ErrorRecorder.recordError(new Error(Error.Type.miss_brace, sym(-1).getLineNum()));
@@ -395,7 +397,7 @@ public class Parser {
             getSym();
         }
         if (Compiler.debugging == 2) System.out.println("<FuncFParam>");
-        return new FuncFParam(btype, indent, constExps, true);
+        return new FuncFParam(btype, indent, constExps, dimension);
     }
 
     private Block Block() throws Error {
@@ -509,7 +511,7 @@ public class Parser {
             asdNodes.add(new ErrorRepresent(sym()));
             if (Compiler.debugging == 2) System.out.println(sym().toString());
             getSym();
-            if (!symType().equals("SEMICN")) {
+            if (!symType().equals("SEMICN") && sym().getLineNum() == sym(-1).getLineNum()) {
                 asdNodes.add(Exp());
             }
             if (!symType().equals("SEMICN")) {
@@ -698,7 +700,12 @@ public class Parser {
             if (Compiler.debugging == 2) System.out.println(sym().toString());
             getSym();
             if (!symType().equals("RPARENT")) {
-                asdNodes.add(FuncRParams());
+                int SavedTokenIndex = tokenIndex;
+                try {
+                    asdNodes.add(FuncRParams());
+                } catch (Error e) {
+                    tokenIndex = SavedTokenIndex;
+                }
             }
             if (!symType().equals("RPARENT")) {
                 ErrorRecorder.recordError(new Error(Error.Type.miss_parent, sym(-1).getLineNum()));

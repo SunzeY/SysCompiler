@@ -3,7 +3,9 @@ package front.SymTable;
 import front.ASD.ASDNode;
 import front.ASD.Block;
 import front.ASD.ConstDef;
+import front.ASD.ConstExp;
 import front.ASD.ConstInitVal;
+import front.ASD.Exp;
 import front.ASD.FormatString;
 import front.ASD.FuncDef;
 import front.ASD.FuncFParam;
@@ -34,6 +36,8 @@ public class SymLinker {
     private final Stack<SymbolTable> tableStack = new Stack<>();
     private final int[] depths = new int[100];
     private Integer currentDepth;
+    private final HashMap<String, SymbolTable> name2Table = new HashMap<>();
+    private String currentFucName;
 
     public SymLinker(ASDNode root) {
         this.root = root;
@@ -57,19 +61,21 @@ public class SymLinker {
                 addFormalArgs(funcFormalArgs);
             }
         } else if (node instanceof VarDef) {
-            checkTable(((VarDef) node).getName(), ((VarDef) node).getIndent());
-            String name = ((VarDef) node).getName();
-            InitVal initVal = ((VarDef) node).getInitVal();
-            SymItem item = new Var(name, false, initVal);
+            VarDef varDef = (VarDef) node;
+            checkTable(varDef.getName(), varDef.getIndent());
+            String name = varDef.getName();
+            InitVal initVal = varDef.getInitVal();
+            SymItem item = new Var(name, false, initVal, varDef.getDimension(), varDef.getArrayShape());
             currentTable.symItems.add(item);
             stack.add(item);
             node2tableItem.put(node, item);
             return;
         } else if (node instanceof ConstDef) {
-            checkTable(((ConstDef) node).getName(), ((ConstDef) node).getIndent());
-            String name = ((ConstDef) node).getName();
-            ConstInitVal constInitVal = ((ConstDef) node).getInitVal();
-            SymItem item = new Var(name, true, constInitVal);
+            ConstDef constDef = (ConstDef) node;
+            checkTable(constDef.getName(), constDef.getIndent());
+            String name = constDef.getName();
+            ConstInitVal constInitVal = constDef.getInitVal();
+            SymItem item = new Var(name, true, constInitVal, constDef.getDimension(), constDef.getArrayShape());
             currentTable.symItems.add(item);
             stack.add(item);
             node2tableItem.put(node, item);
@@ -80,31 +86,67 @@ public class SymLinker {
             Integer argc = ((FuncDef) node).getArgc();
             Func.Type type = ((FuncDef) node).getType().equals(FuncType.Type.Int) ? Func.Type.intFunc : Func.Type.voidFunc;
             SymItem item = new Func(name, type, argc);
+            currentFucName = ((FuncDef) node).getName();
             currentTable.symItems.add(item);
             stack.add(item);
             node2tableItem.put(node, item);
             travel(node.getChild().get(node.getChild().size() - 2), node.getChild().get(node.getChild().size() - 3)); //函数形参需要加入符号表
             return;
         } else if (node instanceof Indent) {
-            SymItem item = findInStack(((Indent) node).getName(), (Indent) node);
+            SymItem item = findInStack(((Indent) node).getName(), (Indent) node, true);
             node2tableItem.put(node, item);
             return;
         } else if (node instanceof UnaryExp && ((UnaryExp) node).type.equals(UnaryExp.Type.FuncCall)) {
             Indent indent = (Indent) node.getChild().get(0);
-            SymItem item = findInStack(((UnaryExp) node).getFuncCallName(), indent);
-            // only need to check number.
+            SymItem item = findInStack(((UnaryExp) node).getFuncCallName(), indent, false);
             int size = 0;
             if (node.getChild().size() > 1) {
                 size = node.getChild().get(1).getChild().size();
             }
             if (item != null && !((Func) item).checkForm(size)) {
                 ErrorRecorder.recordError(new Error(Error.Type.func_arg_cnt_mismatch, indent.getLineNum()));
+                node2tableItem.put(node, item);
+
+            } else {
+                if (node.getChild().size() > 1) {
+                    String funcName = ((Indent) node.getChild().get(0)).getName();
+                    SymbolTable table = name2Table.get(funcName);
+                    if (table == null) {  // happen when no name find!
+                        System.out.println(funcName);
+                    } else {
+                        int index = 0;
+                        Var var = null;
+                        for (ASDNode nod : node.getChild().get(1).getChild()) {
+                            Exp exp = (Exp) nod;
+                            int formDimension = 0;
+                            if (exp.getName() != null) {
+                                var = (Var) findInStack(exp.getName(), null, false);
+                                if (var == null) {
+                                    break;
+                                }
+                                formDimension = var.getDimension() - exp.getDimension();
+                            }
+                            if (((FuncFormVar) table.getTable().get(index)).getDimension() != formDimension) {
+                                ErrorRecorder.recordError(new Error(Error.Type.func_arg_type_mismatch, indent.getLineNum()));
+                            } else if (formDimension > 0) {
+                                ArrayList<Integer> realShape = var.getShape();
+                                ArrayList<Integer> formalShape = ((FuncFormVar) table.getTable().get(index)).getShape();
+                                for (int i=0; i <formDimension-1; i++) {
+                                    if (!realShape.get(i + exp.getDimension() + 1).equals(formalShape.get(i))) {
+                                        ErrorRecorder.recordError(new Error(Error.Type.func_arg_type_mismatch, indent.getLineNum()));
+                                    }
+                                }
+                            }
+                            index += 1;
+                        }
+                    }
+                }
             }
             node2tableItem.put(node, item);
         } else if (node instanceof Stmt && (((Stmt) node).getType().equals(Stmt.Type.Assign) ||
                 ((Stmt) node).getType().equals(Stmt.Type.input))) {
             Indent indent = (Indent) node.getChild().get(0).getChild().get(0);
-            SymItem item = findInStack(indent.getName(), indent);
+            SymItem item = findInStack(indent.getName(), indent, false);
             if (item != null && item.isConst()) {
                 ErrorRecorder.recordError(new Error(Error.Type.changeConst, indent.getLineNum()));
             }
@@ -120,6 +162,9 @@ public class SymLinker {
         }
 
         if (node instanceof Block) {
+            if (funcFormalArgs != null) {
+                name2Table.put(currentFucName, currentTable);
+            }
             currentDepth -= 1;
             popFromStack();
         }
@@ -130,15 +175,15 @@ public class SymLinker {
         for (FuncFParam param: params.getFuncFParams()) {
             String name = param.getName();
             checkTable(name, param.getIndent());
-            boolean isArray = param.getIsArray();
-            FuncFormVar formVar = new FuncFormVar(name, isArray);
+            int dimension = param.getDimension();
+            FuncFormVar formVar = new FuncFormVar(name, dimension, param.getShape());
             currentTable.symItems.add(formVar);
             stack.add(formVar);
             node2tableItem.put(param, formVar);
         }
     }
 
-    private SymItem findInStack(String name, Indent indent) throws Error {
+    private SymItem findInStack(String name, Indent indent, boolean b) throws Error {
         ArrayList<SymItem> items = new ArrayList<>(stack);
         for (int i = items.size() - 1; i >= 0; i -= 1) {
             SymItem item = items.get(i);
@@ -146,7 +191,7 @@ public class SymLinker {
                 return item;
             }
         }
-        ErrorRecorder.recordError(new Error(Error.Type.undefined_name, indent.getLineNum()));
+        if (b) ErrorRecorder.recordError(new Error(Error.Type.undefined_name, indent.getLineNum()));
         return null; //返回null一定要检查！
     }
 

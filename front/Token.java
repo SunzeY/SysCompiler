@@ -95,6 +95,10 @@ public class Token {
     }
 
     public int getFormatCharNum() {
-        return this.getLineNum();
+        return this.formatCharNum;
+    }
+
+    public int getInitValue() {
+        return this.intValue;
     }
 }

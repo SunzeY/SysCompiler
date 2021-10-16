@@ -9,4 +9,8 @@ public class SymbolTable {
     public SymbolTable(int[] indent)  {
         this.indent = indent;
     }
+
+    public ArrayList<SymItem> getTable() {
+        return this.symItems;
+    }
 }

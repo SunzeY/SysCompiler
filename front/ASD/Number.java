@@ -25,4 +25,8 @@ public class Number implements ASDNode{
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
     }
+
+    public int getValue() {
+        return this.intConst.getValue();
+    }
 }

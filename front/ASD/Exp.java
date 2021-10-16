@@ -25,4 +25,12 @@ public class Exp implements ASDNode{
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
     }
+
+    public int getDimension() {
+        return addExp.getDimension();
+    }
+
+    public String getName() {
+        return this.addExp.getName();
+    }
 }

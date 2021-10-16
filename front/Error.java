@@ -4,12 +4,12 @@ import java.util.HashMap;
 
 public class Error extends Exception{
     private Type errorType;
-    private int lineNumber;
+    public int lineNumber;
     public enum Type {
         other_error,
         illegal_sym, name_redefine, undefined_name, func_arg_cnt_mismatch,
         func_arg_type_mismatch, void_return, non_void_non_return, changeConst,
-        miss_semi, miss_parent, miss_brace, printf_num_miss_match, misused_BC
+        miss_semi, miss_parent, miss_brace, printf_num_miss_match, misused_BC,
     }
 
     public final HashMap<Type, String> encode = new HashMap<Type, String>(){{
@@ -35,7 +35,7 @@ public class Error extends Exception{
 
     @Override
     public String toString() {
-        return encode.get(errorType) + " " + lineNumber;
+        return  lineNumber + " " + encode.get(errorType);
     }
 
 }

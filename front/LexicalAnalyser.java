@@ -49,7 +49,7 @@ public class LexicalAnalyser {
             String tokenClass = getToken();
             if (Token.decode.containsValue(tokenClass)) {
                 if (tokenClass.equals("STRCON")) {
-                    tokens.add(new Token(tokenClass, token.toString(), formatCharNum));
+                    tokens.add(new Token(tokenClass, token.toString(), lineNum, formatCharNum));
                     this.formatCharNum = 0;
                 } else {
                     tokens.add(new Token(tokenClass, token.toString(), lineNum));

@@ -24,4 +24,8 @@ public class IntConst implements ASDNode{
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
     }
+
+    public int getValue() {
+        return this.token.getInitValue();
+    }
 }

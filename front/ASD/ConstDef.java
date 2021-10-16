@@ -1,5 +1,7 @@
 package front.ASD;
 
+import front.Error;
+
 import java.util.ArrayList;
 
 public class ConstDef implements ASDNode{
@@ -49,5 +51,17 @@ public class ConstDef implements ASDNode{
 
     public Indent getIndent() {
         return this.indent;
+    }
+
+    public int getDimension() {
+        return this.constExps.size();
+    }
+
+    public ArrayList<Integer> getArrayShape() throws Error {
+        ArrayList<Integer> shape = new ArrayList<>();
+        for (ConstExp exp : constExps) {
+            shape.add(exp.getValue());
+        }
+        return shape;
     }
 }

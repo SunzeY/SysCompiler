@@ -1,5 +1,6 @@
 package front.ASD;
 
+import front.Error;
 import front.Token;
 
 import java.util.ArrayList;
@@ -36,5 +37,32 @@ public class MulExp implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    public int getDimension() {
+        if (!Ops.isEmpty()) {
+            return 0;
+        }
+        return this.unaryExps.get(0).getDimension();
+    }
+
+    public String getName() {
+        if (!Ops.isEmpty()) {
+            return null;
+        }
+
+        return this.unaryExps.get(0).getName();
+    }
+
+    public int getValue() throws Error {
+        int value = unaryExps.get(0).getValue();
+        for (int index = 1; index < unaryExps.size(); index += 1) {
+            if (Ops.get(index-1).toString().equals("MULT *")) {
+                value = value + unaryExps.get(index).getValue();
+            } else {
+                value = value / unaryExps.get(index).getValue();
+            }
+        }
+        return value;
     }
 }

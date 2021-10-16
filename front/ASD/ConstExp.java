@@ -1,5 +1,7 @@
 package front.ASD;
 
+import front.Error;
+
 import java.util.ArrayList;
 
 public class ConstExp implements ASDNode{
@@ -24,5 +26,9 @@ public class ConstExp implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    public int getValue() throws Error {
+        return this.addExp.getValue();
     }
 }

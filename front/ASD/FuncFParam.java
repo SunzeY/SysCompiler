@@ -1,5 +1,7 @@
 package front.ASD;
 
+import front.Error;
+
 import java.util.ArrayList;
 
 public class FuncFParam implements ASDNode{
@@ -9,12 +11,13 @@ public class FuncFParam implements ASDNode{
     private boolean isArray;
 
     private final ArrayList<ASDNode> asdNodes = new ArrayList<>();
+    private int dimension;
 
-    public FuncFParam(BType bType, Indent indent, ArrayList<ConstExp> constExps, boolean isArray) {
+    public FuncFParam(BType bType, Indent indent, ArrayList<ConstExp> constExps, int dimension) {
         this.bType = bType;
         this.indent = indent;
         this.constExps = constExps;
-        this.isArray = isArray;
+        this.dimension = dimension;
         asdNodes.add(bType);
         asdNodes.add(indent);
         asdNodes.addAll(constExps);
@@ -55,5 +58,17 @@ public class FuncFParam implements ASDNode{
 
     public Indent getIndent() {
         return this.indent;
+    }
+
+    public int getDimension() {
+        return this.dimension;
+    }
+
+    public ArrayList<Integer> getShape() throws Error {
+        ArrayList<Integer> shape = new ArrayList<>();
+        for (ConstExp exp: constExps) {
+            shape.add(exp.getValue());
+        }
+        return shape;
     }
 }

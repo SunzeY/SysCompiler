@@ -4,13 +4,17 @@ import front.ASD.ASDNode;
 import front.ASD.ConstInitVal;
 import front.ASD.InitVal;
 
-public class FuncFormVar implements SymItem{
-    private String name;
-    private boolean isConst;
+import java.util.ArrayList;
 
-    public FuncFormVar(String name, boolean isArray) {
+public class FuncFormVar implements SymItem{
+    public String name;
+    private int dimension;
+    private ArrayList<Integer> shape;
+
+    public FuncFormVar(String name, int dimension, ArrayList<Integer> shape) {
         this.name = name;
-        this.isConst = isArray;
+        this.dimension = dimension;
+        this.shape = shape;
     }
 
     public String getName() {
@@ -19,5 +23,13 @@ public class FuncFormVar implements SymItem{
 
     public boolean isConst() {
         return false;
+    }
+
+    public int getDimension() {
+        return this.dimension;
+    }
+
+    public ArrayList<Integer> getShape() {
+        return this.shape;
     }
 }

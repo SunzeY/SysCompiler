@@ -1,7 +1,9 @@
 package front.ASD;
 
+import front.Error;
 import front.SymTable.Func;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 
 public class UnaryExp implements ASDNode{
@@ -52,4 +54,37 @@ public class UnaryExp implements ASDNode{
         return asdNodes;
     }
 
+    public int getDimension() {
+        if (this.type != Type.PrimaryExp) {
+            return 0;
+        }
+        return ((PrimaryExp) this.asdNodes.get(0)).getDimension();
+    }
+
+    public String getName() {
+        if (this.type != Type.PrimaryExp) {
+            return null;
+        }
+        return ((PrimaryExp) this.asdNodes.get(0)).getName();
+    }
+
+    public int getValue() throws Error {
+        if (this.type.equals(Type.PrimaryExp)) {
+            return ((PrimaryExp) this.asdNodes.get(0)).getValue();
+        }
+        else if(this.type.equals(Type.mulUnaryExp)) {
+            if (((UnaryOp) asdNodes.get(0)).toString().equals("MINUS -")) {
+                return -((PrimaryExp) this.asdNodes.get(0)).getValue();
+            } else if (((UnaryOp) asdNodes.get(0)).toString().equals("Not")) {
+                if (((PrimaryExp) this.asdNodes.get(0)).getValue() == 0) {
+                    return 0;
+                }
+                else {
+                    return 1;
+                }
+            }
+        }
+        throw new Error(Error.Type.other_error, -1);
+    }
 }
+

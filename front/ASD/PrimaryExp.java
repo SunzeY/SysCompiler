@@ -1,5 +1,7 @@
 package front.ASD;
 
+import front.Error;
+
 import java.util.ArrayList;
 
 public class PrimaryExp implements ASDNode{
@@ -50,5 +52,30 @@ public class PrimaryExp implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    public int getDimension() {
+        if (this.lVal != null) {
+            return this.lVal.getDimension();
+        } else if (this.exp != null){
+            return this.exp.getDimension();
+        }
+        return 0;
+    }
+
+    public String getName() {
+        if (this.lVal != null) {
+            return this.lVal.getName();
+        } else if (this.exp != null){
+            return this.exp.getName();
+        }
+        return null;
+    }
+
+    public int getValue() throws Error {
+        if (this.number == null) {
+            throw new Error(Error.Type.other_error, -1);
+        }
+        return this.number.getValue();
     }
 }

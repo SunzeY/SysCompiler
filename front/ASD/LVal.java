@@ -33,4 +33,12 @@ public class LVal implements ASDNode{
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
     }
+
+    public int getDimension() {
+        return this.exps.size();
+    }
+
+    public String getName() {
+        return this.indent.getName();
+    }
 }

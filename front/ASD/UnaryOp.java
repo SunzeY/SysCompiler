@@ -25,4 +25,9 @@ public class UnaryOp implements ASDNode{
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
     }
+
+    @Override
+    public String toString() {
+        return this.token.toString();
+    }
 }
