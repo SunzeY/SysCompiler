@@ -1,5 +1,7 @@
 package front.ASD;
 
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 
 public class LAndExp implements ASDNode{
@@ -29,5 +31,10 @@ public class LAndExp implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        return null;
     }
 }

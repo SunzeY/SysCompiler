@@ -2,6 +2,8 @@ package front.ASD;
 
 import front.Error;
 import front.Token;
+import mid.MidCode;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
@@ -37,6 +39,20 @@ public class MulExp implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        String op1 = unaryExps.get(0).gen_mid(midCodeList);
+        String result = op1;
+        for (int i =0; i < Ops.size(); i += 1) {
+            String op2 = unaryExps.get(i+1).gen_mid(midCodeList);
+            mid.MidCode.Op op = Ops.get(i).getTokenClass().equals("MULT") ? mid.MidCode.Op.MUL :
+                                Ops.get(i).getTokenClass().equals("DIV") ? mid.MidCode.Op.DIV : mid.MidCode.Op.MOD;
+            result = midCodeList.add(op, op1, op2, "#AUTO");
+            op1 = result;
+        }
+        return result;
     }
 
     public int getDimension() {

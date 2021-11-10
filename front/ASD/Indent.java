@@ -1,6 +1,7 @@
 package front.ASD;
 
 import front.Token;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
@@ -28,6 +29,11 @@ public class Indent implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        return null;
     }
 
     public String getName() {

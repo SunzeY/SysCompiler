@@ -1,6 +1,7 @@
 package front.ASD;
 
 import front.Token;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
@@ -26,8 +27,21 @@ public class FormatString implements ASDNode {
         return asdNodes;
     }
 
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        return null;
+    }
+
     public int getFormatCharNum() {
         return this.token.getFormatCharNum();
     }
 
+    @Override
+    public String toString() {
+        return this.token.toString();
+    }
+
+    public String getString() {
+        return this.token.getString();
+    }
 }

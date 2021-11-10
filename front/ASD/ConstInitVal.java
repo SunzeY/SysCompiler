@@ -1,5 +1,8 @@
 package front.ASD;
 
+import front.Error;
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 
 public class ConstInitVal implements ASDNode{
@@ -45,5 +48,21 @@ public class ConstInitVal implements ASDNode{
             return new ArrayList<>();
         }
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        String value = "";
+        if (this.type.equals(Type.Exp)) {
+            try {
+                value = Integer.toString(((ConstExp) asdNodes.get(0)).getValue());
+            } catch (Error ignored) {
+
+            }
+
+        } else {
+            // TODO array
+        }
+        return value;
     }
 }

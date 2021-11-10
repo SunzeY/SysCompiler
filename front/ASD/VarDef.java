@@ -1,6 +1,8 @@
 package front.ASD;
 
 import front.Error;
+import mid.MidCode;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
@@ -53,6 +55,24 @@ public class VarDef implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        // 变量名@<depth, 序号>
+        System.out.println(indent);
+        String name =  indent.getName() + "@" + midCodeList.node2symItem.get(indent).get_loc();
+        if (constExps.size() == 0) { // not-Array
+            if (initVal != null) {
+                String value = initVal.gen_mid(midCodeList);
+                midCodeList.add(MidCode.Op.VAR_DEF, name, value, "#VACANT");
+            } else {
+                midCodeList.add(MidCode.Op.VAR_DEF, name, "#VACANT", "#VACANT");
+            }
+        } else {
+            // TODO arrayVar
+        }
+        return "";
     }
 
     public Integer[] getType() {

@@ -511,8 +511,13 @@ public class Parser {
             asdNodes.add(new ErrorRepresent(sym()));
             if (Compiler.debugging == 2) System.out.println(sym().toString());
             getSym();
-            if (!symType().equals("SEMICN") && sym().getLineNum() == sym(-1).getLineNum()) {
-                asdNodes.add(Exp());
+            if (!symType().equals("SEMICN")) {
+                int savedIndex = this.tokenIndex;
+                try {
+                    asdNodes.add(Exp());
+                } catch (Error e) {
+                    this.tokenIndex = savedIndex;
+                }
             }
             if (!symType().equals("SEMICN")) {
                 ErrorRecorder.recordError(new Error(Error.Type.miss_semi, sym(-1).getLineNum()));
@@ -561,8 +566,7 @@ public class Parser {
             Compiler.debugging = 0;
             try {
                 LVal();
-            } catch (Error e) {
-                //..
+            } catch (Error ignored) {
             }
             if (symType().equals("ASSIGN")) {
                 isExp = false;
@@ -666,7 +670,8 @@ public class Parser {
             getSym();
             primaryExp = new PrimaryExp(Exp());
             if (!symType().equals("RPARENT")) {
-                throw new Error(Error.Type.other_error, -1);
+                ErrorRecorder.recordError(new Error(Error.Type.miss_parent, sym(-1).getLineNum()));
+                this.tokenIndex -= 1;
             }
             if (Compiler.debugging == 2) System.out.println(sym().toString());
             getSym();

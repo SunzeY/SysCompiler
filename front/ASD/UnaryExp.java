@@ -1,9 +1,9 @@
 package front.ASD;
 
 import front.Error;
-import front.SymTable.Func;
+import mid.MidCode;
+import mid.MidCodeList;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 
 public class UnaryExp implements ASDNode{
@@ -54,6 +54,30 @@ public class UnaryExp implements ASDNode{
         return asdNodes;
     }
 
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        if (this.type.equals(Type.mulUnaryExp)) {
+            String type = ((UnaryOp) asdNodes.get(0)).getType();
+            MidCode.Op op = type.equals("SUB") ? MidCode.Op.SUB :
+                            type.equals("ADD") ? MidCode.Op.ADD : MidCode.Op.NOT;
+            if (op.equals(MidCode.Op.NOT)) {
+                return midCodeList.add(op, this.asdNodes.get(1).gen_mid(midCodeList), "#VACANT", "#AUTO");
+            } else {
+                return midCodeList.add(op, "0", this.asdNodes.get(1).gen_mid(midCodeList), "#AUTO");
+            }
+        } else if (this.type.equals(Type.FuncCall)) {
+            String funcName = ((Indent) asdNodes.get(0)).getName();
+            midCodeList.add(MidCode.Op.PREPARE_CALL, funcName, "#VACANT", "#VACANT");
+            if (asdNodes.size()> 1) {
+                asdNodes.get(1).gen_mid(midCodeList);
+            }
+            midCodeList.add(MidCode.Op.CALL, funcName, "#VACANT", "#VACANT");
+            // TODO return value pass by %RET or void
+            return midCodeList.add(MidCode.Op.ADD, "%RTX", "0", "#AUTO");
+        }
+        return this.asdNodes.get(0).gen_mid(midCodeList);
+    }
+
     public int getDimension() {
         if (this.type != Type.PrimaryExp) {
             return 0;
@@ -62,10 +86,12 @@ public class UnaryExp implements ASDNode{
     }
 
     public String getName() {
-        if (this.type != Type.PrimaryExp) {
-            return null;
+        if (this.type == Type.PrimaryExp) {
+            return ((PrimaryExp) this.asdNodes.get(0)).getName();
+        } else if (this.type == Type.FuncCall) {
+            return ((Indent) this.asdNodes.get(0)).getName();
         }
-        return ((PrimaryExp) this.asdNodes.get(0)).getName();
+        return null;
     }
 
     public int getValue() throws Error {

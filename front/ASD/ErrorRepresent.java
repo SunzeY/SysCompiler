@@ -2,6 +2,7 @@ package front.ASD;
 
 import front.ASD.ASDNode;
 import front.Token;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
@@ -24,6 +25,11 @@ public class ErrorRepresent implements ASDNode {
     @Override
     public ArrayList<ASDNode> getChild() {
         return new ArrayList<>();
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        return null;
     }
 
     public Token getToken() {

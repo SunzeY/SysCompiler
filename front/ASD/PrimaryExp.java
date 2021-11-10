@@ -1,13 +1,14 @@
 package front.ASD;
 
 import front.Error;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
 public class PrimaryExp implements ASDNode{
-    private Exp exp;
-    private LVal lVal;
-    private Number number;
+    public Exp exp;
+    public LVal lVal;
+    public Number number;
     private final ArrayList<ASDNode> asdNodes = new ArrayList<>();
 
     public PrimaryExp(Exp exp) {
@@ -52,6 +53,17 @@ public class PrimaryExp implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        if (this.exp != null) {
+            return exp.gen_mid(midCodeList);
+        } else if (this.lVal != null) {
+            return this.lVal.gen_mid(midCodeList);
+        } else {
+            return Integer.toString(this.number.getValue());
+        }
     }
 
     public int getDimension() {

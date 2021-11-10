@@ -1,6 +1,7 @@
 package front.ASD;
 
 import front.Error;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
@@ -48,6 +49,11 @@ public class FuncFParam implements ASDNode{
         return asdNodes;
     }
 
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        return null;
+    }
+
     public String getName() {
         return this.indent.getName();
     }
@@ -66,6 +72,7 @@ public class FuncFParam implements ASDNode{
 
     public ArrayList<Integer> getShape() throws Error {
         ArrayList<Integer> shape = new ArrayList<>();
+        shape.add(10000000);
         for (ConstExp exp: constExps) {
             shape.add(exp.getValue());
         }

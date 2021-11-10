@@ -38,4 +38,12 @@ public class Error extends Exception{
         return  lineNumber + " " + encode.get(errorType);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Error)) {
+            return false;
+        }
+        Error error = (Error) obj;
+        return error == this || (error.toString().equals(this.toString()));
+    }
 }

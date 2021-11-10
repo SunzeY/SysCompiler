@@ -1,5 +1,8 @@
 package front.ASD;
 
+import front.Error;
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 import java.util.zip.InflaterInputStream;
 
@@ -44,5 +47,16 @@ public class InitVal implements ASDNode{
             return new ArrayList<>();
         }
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        String value = "";
+        if (this.type.equals(InitVal.Type.Exp)) {
+            value = (asdNodes.get(0)).gen_mid(midCodeList);
+        } else {
+            // TODO array
+        }
+        return value;
     }
 }

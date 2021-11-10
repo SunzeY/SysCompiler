@@ -1,5 +1,8 @@
 package front.ASD;
 
+import mid.MidCode;
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 
 public class MainFuncDef implements ASDNode{
@@ -29,5 +32,13 @@ public class MainFuncDef implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        midCodeList.add(MidCode.Op.FUNC, "int", "main", "#VACANT");
+        this.block.gen_mid(midCodeList);
+        midCodeList.add(MidCode.Op.END_FUNC, "int", "main", "#VACANT");
+        return null;
     }
 }

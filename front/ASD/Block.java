@@ -1,5 +1,8 @@
 package front.ASD;
 
+import mid.MidCode;
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 
 public class Block implements ASDNode{
@@ -28,5 +31,15 @@ public class Block implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        midCodeList.add(MidCode.Op.NEW_BLOCK, "#VACANT", "#VACANT", "#VACANT");
+        for (BlockItem blockItem: blockItems) {
+            blockItem.gen_mid(midCodeList);
+        }
+        midCodeList.add(MidCode.Op.EXIT_BLOCK, "#VACANT", "#VACANT", "#VACANT");
+        return "";
     }
 }

@@ -1,5 +1,7 @@
 package front.ASD;
 
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 
 public class ConstDecl implements ASDNode{
@@ -37,5 +39,13 @@ public class ConstDecl implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        for (ConstDef constDef: constDefs) {
+            constDef.gen_mid(midCodeList);
+        }
+        return "";
     }
 }

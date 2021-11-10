@@ -1,6 +1,7 @@
 package front.ASD;
 
 import front.Token;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
@@ -23,6 +24,11 @@ public class IntConst implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        return null;
     }
 
     public int getValue() {

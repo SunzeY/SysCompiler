@@ -12,8 +12,17 @@ public class ErrorRecorder {
 
     public static void PrintErrorRecord() {
         errors.sort(Comparator.comparingInt(o -> o.lineNumber));
+        ArrayList<Error> printedErrors = new ArrayList<>();
         for (Error error: errors) {
-            System.out.println(error.toString());
+            boolean tag = true;
+            for (Error printedError: printedErrors) {
+                if (printedError.equals(error)) {
+                    tag = false;
+                    break;
+                }
+            }
+            if(tag) System.out.println(error.toString());
+            printedErrors.add(error);
         }
     }
 

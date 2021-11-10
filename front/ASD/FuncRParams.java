@@ -1,5 +1,8 @@
 package front.ASD;
 
+import mid.MidCode;
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 
 public class FuncRParams implements ASDNode{
@@ -34,5 +37,14 @@ public class FuncRParams implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        for (Exp exp: exps) {
+            String name = exp.gen_mid(midCodeList);
+            midCodeList.add(MidCode.Op.PUSH_PARA, name, "#VACANT", "#VACANT");
+        }
+        return "";
     }
 }

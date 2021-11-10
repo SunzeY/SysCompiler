@@ -1,6 +1,7 @@
 package front.ASD;
 
 import front.Token;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
@@ -27,7 +28,16 @@ public class UnaryOp implements ASDNode{
     }
 
     @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        return null;
+    }
+
+    @Override
     public String toString() {
         return this.token.toString();
+    }
+
+    public String getType() {
+        return this.token.getTokenClass();
     }
 }

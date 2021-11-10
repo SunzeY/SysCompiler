@@ -1,11 +1,13 @@
 package front.ASD;
 
 import front.Error;
+import mid.MidCode;
+import mid.MidCodeList;
 
 import java.util.ArrayList;
 
 public class ConstDef implements ASDNode{
-    private Indent indent;
+    public Indent indent;
     private ArrayList<ConstExp> constExps;
     private ConstInitVal constInitVal;
     private final ArrayList<ASDNode> asdNodes = new ArrayList<>();
@@ -39,6 +41,18 @@ public class ConstDef implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        String name =  indent.getName() + "@" + midCodeList.node2symItem.get(indent).get_loc();
+        if (constExps.size() == 0) { // not-Array
+            String value = constInitVal.gen_mid(midCodeList);
+            midCodeList.add(MidCode.Op.CONST_DEF, name, value, "#VACANT");
+        } else {
+            // TODO arrayVar
+        }
+        return "";
     }
 
     public String getName() {

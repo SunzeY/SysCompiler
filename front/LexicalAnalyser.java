@@ -356,10 +356,7 @@ public class LexicalAnalyser {
         return index < programCode.length() && programCode.charAt(index) == '|';
     }
 
-    public boolean isAnd() {
-
-        return index < programCode.length() && programCode.charAt(index) == '&';
-    }
+    public boolean isAnd() {return index < programCode.length() && programCode.charAt(index) == '&'; }
 
     public boolean isExc() {
         return index < programCode.length() && programCode.charAt(index) == '!';

@@ -1,5 +1,7 @@
 package front.ASD;
 
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 
 public class LVal implements ASDNode{
@@ -32,6 +34,12 @@ public class LVal implements ASDNode{
     @Override
     public ArrayList<ASDNode> getChild() {
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        // 变量名@<depth, 序号>
+        return indent.getName() + "@" + midCodeList.node2symItem.get(indent).get_loc();
     }
 
     public int getDimension() {

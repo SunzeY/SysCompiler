@@ -1,5 +1,8 @@
 package front.ASD;
 
+import mid.MidCode;
+import mid.MidCodeList;
+
 import java.util.ArrayList;
 
 public class Stmt implements ASDNode{
@@ -107,6 +110,63 @@ public class Stmt implements ASDNode{
             return new ArrayList<>();
         }
         return asdNodes;
+    }
+
+    @Override
+    public String gen_mid(MidCodeList midCodeList) {
+        String result = "";
+        switch (type) {
+            case Assign:
+                result = midCodeList.add(MidCode.Op.ASSIGN,
+                        this.asdNodes.get(0).gen_mid(midCodeList),
+                        this.asdNodes.get(1).gen_mid(midCodeList), "#VACANT");
+                break;
+            case Exp:
+                result = this.asdNodes.get(0).gen_mid(midCodeList);
+                break;
+            case Block:
+                result = this.asdNodes.get(0).gen_mid(midCodeList);
+                break;
+            case ifBranch:
+                break;
+            case whileBranch:
+                break;
+            case breakStmt:
+                break;
+            case continueStmt:
+                break;
+            case returnStmt:
+                result = midCodeList.add(MidCode.Op.RETURN,
+                        (asdNodes.size() == 2) ? asdNodes.get(1).gen_mid(midCodeList) : "#VACANT",
+                        "#VACANT",
+                        "#VACANT");
+                break;
+            case input:
+                result = midCodeList.add(MidCode.Op.GETINT,
+                        this.asdNodes.get(0).gen_mid(midCodeList),
+                        "#VACANT",
+                        "#VACANT");
+                break;
+            case output:
+                //midCodeList.add(MidCode.Op.PRINT, ((FormatString)asdNodes.get(1)).toString(), "#VACANT", "#VACANT");
+                String[] cutFStrings = ((FormatString) asdNodes.get(1)).getString().split("%d");
+                int i = 0;
+                for (ASDNode asdNode: asdNodes.subList(2, asdNodes.size())) {
+                    if (i < cutFStrings.length && !cutFStrings[i].equals("")) {
+                        midCodeList.add(MidCode.Op.PRINT, cutFStrings[i], "#STRCONS", "#VACANT");
+                    }
+                    midCodeList.add(MidCode.Op.PRINT, asdNode.gen_mid(midCodeList), "#VACANT", "#VACANT");
+                    i += 1;
+                }
+                if (i < cutFStrings.length && !cutFStrings[i].equals("")) {
+                    midCodeList.add(MidCode.Op.PRINT, cutFStrings[i], "#STRCONS", "#VACANT");
+                }
+                break;
+            case None:
+            default:
+                break;
+        }
+        return result;
     }
 
     public Type getType() {

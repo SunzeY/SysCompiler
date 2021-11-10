@@ -101,4 +101,8 @@ public class Token {
     public int getInitValue() {
         return this.intValue;
     }
+
+    public String getString() {
+        return this.originStr.replaceAll("\"", "");
+    }
 }
