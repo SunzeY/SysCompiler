@@ -5,7 +5,7 @@ import mid.MidCodeList;
 
 import java.util.ArrayList;
 
-public class Stmt implements ASDNode{
+public class Stmt implements ASDNode {
 
     public enum Type {
         Assign, Exp, ifBranch, whileBranch, breakStmt, continueStmt,
@@ -82,7 +82,7 @@ public class Stmt implements ASDNode{
                 System.out.println("PRINTFTK printf");
                 System.out.println("LPARENT (");
                 boolean flag = false;
-                for (ASDNode asdNode: asdNodes.subList(1, asdNodes.size())) {
+                for (ASDNode asdNode : asdNodes.subList(1, asdNodes.size())) {
                     if (flag) {
                         System.out.println("COMMA ,");
                     }
@@ -117,23 +117,61 @@ public class Stmt implements ASDNode{
         String result = "";
         switch (type) {
             case Assign:
-                result = midCodeList.add(MidCode.Op.ASSIGN,
-                        this.asdNodes.get(0).gen_mid(midCodeList),
-                        this.asdNodes.get(1).gen_mid(midCodeList), "#VACANT");
+                String name = this.asdNodes.get(0).gen_mid(midCodeList);
+                if (name.contains("[")) {
+                    String tmp = midCodeList.add(MidCode.Op.ASSIGN,
+                                "#AUTO",
+                                this.asdNodes.get(1).gen_mid(midCodeList), "#VACANT");
+                    midCodeList.add(MidCode.Op.ARR_SAVE, name, tmp, "#VACANT");
+                } else {
+                    result = midCodeList.add(MidCode.Op.ASSIGN,
+                            this.asdNodes.get(0).gen_mid(midCodeList),
+                            this.asdNodes.get(1).gen_mid(midCodeList), "#VACANT");
+                }
                 break;
             case Exp:
-                result = this.asdNodes.get(0).gen_mid(midCodeList);
-                break;
             case Block:
                 result = this.asdNodes.get(0).gen_mid(midCodeList);
                 break;
             case ifBranch:
+                String bool_value = asdNodes.get(0).gen_mid(midCodeList);
+                if (asdNodes.size() == 2) { //no else
+                    String endIf = midCodeList.add(MidCode.Op.JUMP_IF, bool_value + " " + 0, "==", "#AUTO_LABEL");
+                    asdNodes.get(1).gen_mid(midCodeList);
+                    midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACNAT", endIf);
+                } else {
+                    String else_label = midCodeList.add(MidCode.Op.JUMP_IF, bool_value + " " + 0, "==", "#AUTO_LABEL");
+                    asdNodes.get(1).gen_mid(midCodeList);
+                    String endIf = midCodeList.add(MidCode.Op.JUMP, "#VACANT", "#VACANT", "#AUTO_LABEL");
+                    midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACNAT", else_label);
+                    asdNodes.get(2).gen_mid(midCodeList);
+                    midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACNAT", endIf);
+                }
                 break;
             case whileBranch:
+                // convert into if(cond)(do{block}while(cond))
+                String judge_value = midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", "#AUTO_LABEL");
+                String cond_bool_value = asdNodes.get(0).gen_mid(midCodeList);
+                String end_loop = midCodeList.add(MidCode.Op.JUMP_IF, cond_bool_value + " " + 0, "==", "#AUTO_LABEL");
+                String begin_loop = midCodeList.alloc_label();
+                midCodeList.add(MidCode.Op.WHILE_BIND, judge_value, end_loop, "#VACANT");
+                midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", begin_loop);
+                asdNodes.get(1).gen_mid(midCodeList);
+                midCodeList.begin_tables.pop();
+                midCodeList.end_tables.pop();
+                String re_cond_bool_value = asdNodes.get(0).gen_mid(midCodeList);
+                midCodeList.add(MidCode.Op.JUMP_IF, re_cond_bool_value + " " + 0, "!=", begin_loop);
+                midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", end_loop);
                 break;
             case breakStmt:
+                String end = midCodeList.end_tables.peek();
+                assert end != null;
+                midCodeList.add(MidCode.Op.JUMP, "#VACANT", "#VACANT", end);
                 break;
             case continueStmt:
+                String begin = midCodeList.begin_tables.peek();
+                assert begin != null;
+                midCodeList.add(MidCode.Op.JUMP, "#VACANT", "#VACANT", begin);
                 break;
             case returnStmt:
                 result = midCodeList.add(MidCode.Op.RETURN,
@@ -148,10 +186,10 @@ public class Stmt implements ASDNode{
                         "#VACANT");
                 break;
             case output:
-                //midCodeList.add(MidCode.Op.PRINT, ((FormatString)asdNodes.get(1)).toString(), "#VACANT", "#VACANT");
+                // midCodeList.add(MidCode.Op.PRINT, ((FormatString)asdNodes.get(1)).toString(), "#VACANT", "#VACANT");
                 String[] cutFStrings = ((FormatString) asdNodes.get(1)).getString().split("%d");
                 int i = 0;
-                for (ASDNode asdNode: asdNodes.subList(2, asdNodes.size())) {
+                for (ASDNode asdNode : asdNodes.subList(2, asdNodes.size())) {
                     if (i < cutFStrings.length && !cutFStrings[i].equals("")) {
                         midCodeList.add(MidCode.Op.PRINT, cutFStrings[i], "#STRCONS", "#VACANT");
                     }

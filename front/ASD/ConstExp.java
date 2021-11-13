@@ -31,7 +31,7 @@ public class ConstExp implements ASDNode{
 
     @Override
     public String gen_mid(MidCodeList midCodeList) {
-        return null;
+        return this.addExp.gen_mid(midCodeList);
     }
 
     public int getValue() throws Error {

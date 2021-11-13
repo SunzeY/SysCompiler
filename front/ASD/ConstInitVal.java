@@ -1,16 +1,18 @@
 package front.ASD;
 
 import front.Error;
+import mid.MidCode;
 import mid.MidCodeList;
 
 import java.util.ArrayList;
 
-public class ConstInitVal implements ASDNode{
+public class ConstInitVal implements ASDNode {
 
-    public enum Type{
+    public enum Type {
         mulInitVal,
         Exp
     }
+
     private ArrayList<ASDNode> asdNodes;
     private ConstInitVal.Type type;
 
@@ -26,7 +28,7 @@ public class ConstInitVal implements ASDNode{
         } else {
             System.out.println("LBRACE {");
             boolean tag = false;
-            for (ASDNode asdNode: asdNodes) {
+            for (ASDNode asdNode : asdNodes) {
                 if (tag) {
                     System.out.println("COMMA ,");
                 }
@@ -57,12 +59,26 @@ public class ConstInitVal implements ASDNode{
             try {
                 value = Integer.toString(((ConstExp) asdNodes.get(0)).getValue());
             } catch (Error ignored) {
-
+                value = asdNodes.get(0).gen_mid(midCodeList); // const with special type need gen-mid-code
             }
 
         } else {
             // TODO array
+            value = "#ARRAY";
         }
         return value;
+    }
+
+    public void getInitValue(ArrayList<Integer> initValues) {
+        if (this.type.equals(Type.Exp)) {
+            try {
+                initValues.add(((ConstExp) asdNodes.get(0)).getValue());
+            } catch (Error ignored) {
+            }
+        } else {
+            for (ASDNode asdNode : asdNodes) {
+                ((ConstInitVal) asdNode).getInitValue(initValues);
+            }
+        }
     }
 }

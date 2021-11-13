@@ -58,10 +58,14 @@ public class UnaryExp implements ASDNode{
     public String gen_mid(MidCodeList midCodeList) {
         if (this.type.equals(Type.mulUnaryExp)) {
             String type = ((UnaryOp) asdNodes.get(0)).getType();
-            MidCode.Op op = type.equals("SUB") ? MidCode.Op.SUB :
-                            type.equals("ADD") ? MidCode.Op.ADD : MidCode.Op.NOT;
+            MidCode.Op op = type.equals("MINU") ? MidCode.Op.SUB :
+                            type.equals("PLUS") ? MidCode.Op.ADD : MidCode.Op.NOT;
             if (op.equals(MidCode.Op.NOT)) {
-                return midCodeList.add(op, this.asdNodes.get(1).gen_mid(midCodeList), "#VACANT", "#AUTO");
+                String tmp = midCodeList.add(MidCode.Op.ASSIGN, "#AUTO", "1", "#VACANT");
+                String label = midCodeList.add(MidCode.Op.JUMP_IF, asdNodes.get(1).gen_mid(midCodeList) + " 0", "==", "#AUTO_LABEL");
+                midCodeList.add(MidCode.Op.ASSIGN, tmp, "0", "#VACANT");
+                midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", label);
+                return tmp;
             } else {
                 return midCodeList.add(op, "0", this.asdNodes.get(1).gen_mid(midCodeList), "#AUTO");
             }
@@ -69,7 +73,10 @@ public class UnaryExp implements ASDNode{
             String funcName = ((Indent) asdNodes.get(0)).getName();
             midCodeList.add(MidCode.Op.PREPARE_CALL, funcName, "#VACANT", "#VACANT");
             if (asdNodes.size()> 1) {
-                asdNodes.get(1).gen_mid(midCodeList);
+                for (Exp exp: ((FuncRParams)asdNodes.get(1)).exps) {
+                    String name = exp.gen_mid(midCodeList);
+                    midCodeList.add(MidCode.Op.PUSH_PARA, name, funcName, "#VACANT");
+                }
             }
             midCodeList.add(MidCode.Op.CALL, funcName, "#VACANT", "#VACANT");
             // TODO return value pass by %RET or void
@@ -99,10 +106,13 @@ public class UnaryExp implements ASDNode{
             return ((PrimaryExp) this.asdNodes.get(0)).getValue();
         }
         else if(this.type.equals(Type.mulUnaryExp)) {
+            if (asdNodes.get(0).toString().equals("PLUS +")) {
+                return ((UnaryExp) this.asdNodes.get(1)).getValue();
+            }
             if (((UnaryOp) asdNodes.get(0)).toString().equals("MINUS -")) {
-                return -((PrimaryExp) this.asdNodes.get(0)).getValue();
+                return -((UnaryExp) this.asdNodes.get(1)).getValue();
             } else if (((UnaryOp) asdNodes.get(0)).toString().equals("Not")) {
-                if (((PrimaryExp) this.asdNodes.get(0)).getValue() == 0) {
+                if (((UnaryExp) this.asdNodes.get(1)).getValue() == 0) {
                     return 0;
                 }
                 else {

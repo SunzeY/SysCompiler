@@ -50,7 +50,15 @@ public class ConstDef implements ASDNode{
             String value = constInitVal.gen_mid(midCodeList);
             midCodeList.add(MidCode.Op.CONST_DEF, name, value, "#VACANT");
         } else {
-            // TODO arrayVar
+            String value = constInitVal.gen_mid(midCodeList);
+            assert value.equals("#ARRAY");
+            ArrayList<Integer> initValues = new ArrayList<>();
+            constInitVal.getInitValue(initValues);
+            int index = 0;
+            for (Integer res: initValues) {
+                midCodeList.add(MidCode.Op.ARR_SAVE, name + "[" + index + "]", res.toString(), "#VACANT");
+                index += 1;
+            }
         }
         return "";
     }

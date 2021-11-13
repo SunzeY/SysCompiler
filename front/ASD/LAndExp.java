@@ -1,5 +1,6 @@
 package front.ASD;
 
+import mid.MidCode;
 import mid.MidCodeList;
 
 import java.util.ArrayList;
@@ -35,6 +36,21 @@ public class LAndExp implements ASDNode{
 
     @Override
     public String gen_mid(MidCodeList midCodeList) {
-        return null;
+        String false_label = "";
+        String bool_var = "";
+        if (eqExps.size() == 1) {
+            return eqExps.get(0).gen_mid(midCodeList);
+        }
+        bool_var = midCodeList.add(MidCode.Op.ASSIGN, "#AUTO", "0", "#VACANT");
+        for (EqExp eqExp : eqExps) {
+            String ans = eqExp.gen_mid(midCodeList);
+            if (false_label.equals("")) {
+                false_label = midCodeList.add(MidCode.Op.JUMP_IF, ans + " " + "0", "==", "#AUTO_LABEL");
+            }
+        }
+        midCodeList.add(MidCode.Op.ASSIGN, bool_var, "1", "#VACANT");
+        midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", false_label);
+        assert !bool_var.equals("");
+        return bool_var;
     }
 }

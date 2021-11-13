@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class FuncFParam implements ASDNode{
     private BType bType;
-    private Indent indent;
+    public Indent indent;
     private ArrayList<ConstExp> constExps;
     private boolean isArray;
 
@@ -72,7 +72,9 @@ public class FuncFParam implements ASDNode{
 
     public ArrayList<Integer> getShape() throws Error {
         ArrayList<Integer> shape = new ArrayList<>();
-        shape.add(10000000);
+        if (this.dimension != 1) {
+            shape.add(-1);
+        }
         for (ConstExp exp: constExps) {
             shape.add(exp.getValue());
         }

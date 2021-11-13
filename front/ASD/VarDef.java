@@ -6,7 +6,7 @@ import mid.MidCodeList;
 
 import java.util.ArrayList;
 
-public class VarDef implements ASDNode{
+public class VarDef implements ASDNode {
     public Indent indent;
     private ArrayList<ConstExp> constExps;
     private InitVal initVal;
@@ -32,7 +32,7 @@ public class VarDef implements ASDNode{
     @Override
     public void printTestInfo() {
         indent.printTestInfo();
-        for (ConstExp constExp: constExps) {
+        for (ConstExp constExp : constExps) {
             System.out.println("LBRACK [");
             constExp.printTestInfo();
             System.out.println("RBRACK ]");
@@ -61,7 +61,7 @@ public class VarDef implements ASDNode{
     public String gen_mid(MidCodeList midCodeList) {
         // 变量名@<depth, 序号>
         System.out.println(indent);
-        String name =  indent.getName() + "@" + midCodeList.node2symItem.get(indent).get_loc();
+        String name = indent.getName() + "@" + midCodeList.node2symItem.get(indent).get_loc();
         if (constExps.size() == 0) { // not-Array
             if (initVal != null) {
                 String value = initVal.gen_mid(midCodeList);
@@ -70,7 +70,19 @@ public class VarDef implements ASDNode{
                 midCodeList.add(MidCode.Op.VAR_DEF, name, "#VACANT", "#VACANT");
             }
         } else {
-            // TODO arrayVar
+            if (initVal != null) {
+                String value = initVal.gen_mid(midCodeList);
+                assert value.equals("#ARRAY");
+                ArrayList<String> initValues = new ArrayList<>();
+                initVal.getInitValue(initValues, midCodeList);
+                int index = 0;
+                for (String res : initValues) {
+                    midCodeList.add(MidCode.Op.ARR_SAVE, name + "[" + index + "]", res, "#VACANT");
+                    index += 1;
+                }
+            } else {
+                midCodeList.add(MidCode.Op.VAR_DEF, name, "#VACANT", "#VACANT");
+            }
         }
         return "";
     }

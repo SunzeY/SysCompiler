@@ -31,6 +31,6 @@ public class Cond implements ASDNode{
 
     @Override
     public String gen_mid(MidCodeList midCodeList) {
-        return null;
+        return this.asdNodes.get(0).gen_mid(midCodeList);
     }
 }

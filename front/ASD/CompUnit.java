@@ -2,6 +2,8 @@ package front.ASD;
 
 import mid.MidCodeList;
 
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 
 public class CompUnit implements ASDNode {
@@ -21,6 +23,13 @@ public class CompUnit implements ASDNode {
 
     @Override
     public void printTestInfo() {
+        PrintStream out = System.out;
+        try {
+            PrintStream os = new PrintStream("output.txt");
+            System.setOut(os);
+        } catch (IOException ignored) {
+        }
+
         for (Decl decl: decls) {
             decl.printTestInfo();
         }
@@ -29,6 +38,7 @@ public class CompUnit implements ASDNode {
         }
         mainDuncDef.printTestInfo();
         System.out.println("<CompUnit>");
+        System.setOut(out);
     }
 
     @Override

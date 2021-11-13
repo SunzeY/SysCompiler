@@ -8,4 +8,5 @@ public interface ASDNode {
     ArrayList<ASDNode> getChild();
 
     public String gen_mid(mid.MidCodeList midCodeList);
+
 }

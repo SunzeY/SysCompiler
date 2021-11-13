@@ -25,12 +25,13 @@ public class Var implements SymItem{
         this.loc = loc;
     }
 
-    public Var(String name, boolean isConst, ConstInitVal constInitVal, int dimension, ArrayList<Integer> shape) {
+    public Var(String name, boolean isConst, ConstInitVal constInitVal, int dimension, ArrayList<Integer> shape, String loc) {
         this.name = name;
         this.isConst = isConst;
         this.constInitVal = constInitVal;
         this.dimension = dimension;
         this.shape = shape;
+        this.loc = loc;
     }
 
     public String getName() {

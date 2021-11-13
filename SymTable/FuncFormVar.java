@@ -31,12 +31,8 @@ public class FuncFormVar implements SymItem{
 
     @Override
     public int set_addr(int addr) {
-        int size = 1;
-        for (Integer dimensionSize: shape) {
-            size *= dimensionSize;
-        }
         this.addr = addr;
-        return this.addr + size * 4;
+        return this.addr + 4;
     }
 
     @Override

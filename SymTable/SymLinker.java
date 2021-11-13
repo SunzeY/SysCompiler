@@ -32,7 +32,7 @@ public class SymLinker {
     private final HashMap<String, SymbolTable> blockLoc2table = new HashMap<>();
     public final HashMap<ASDNode, SymItem> node2tableItem = new HashMap<>();
     private final ASDNode root;
-    private static SymbolTable currentTable;
+    private SymbolTable currentTable;
     private final HashMap<String, ArrayList<SymbolTable>> funcSymbolsTables = new HashMap<>();
     private ArrayList<SymbolTable> funcTable = new ArrayList<>();
     private final ArrayList<SymbolTable> symbolTables = new ArrayList<>();
@@ -64,7 +64,7 @@ public class SymLinker {
         for (Map.Entry<String, ArrayList<SymbolTable>> pair : funcSymbolsTables.entrySet()) {
             String funcName = pair.getKey();
             ArrayList<SymItem> funcTable = new ArrayList<>();
-            int addr = 0;
+            int addr = 4;
             for (SymbolTable table : pair.getValue()) {
                 for (SymItem item: table.symItems) {
                     addr = item.set_addr(addr);
@@ -101,17 +101,15 @@ public class SymLinker {
             currentTable.symItems.add(item);
             stack.add(item);
             node2tableItem.put(((VarDef) node).indent, item);
-            return;
         } else if (node instanceof ConstDef) {
             ConstDef constDef = (ConstDef) node;
             checkTable(constDef.getName(), constDef.getIndent());
             String name = constDef.getName();
             ConstInitVal constInitVal = constDef.getInitVal();
-            SymItem item = new Var(name, true, constInitVal, constDef.getDimension(), constDef.getArrayShape());
+            SymItem item = new Var(name, true, constInitVal, constDef.getDimension(), constDef.getArrayShape(), get_loc());
             currentTable.symItems.add(item);
             stack.add(item);
             node2tableItem.put(((ConstDef) node).indent, item);
-            return;
         } else if (node instanceof FuncDef) {
             checkTable(((FuncDef) node).getName(), ((FuncDef) node).getIndent());
             String name = ((FuncDef) node).getName();
@@ -208,7 +206,6 @@ public class SymLinker {
             Indent indent = (Indent) ((PrimaryExp) node).lVal.getChild().get(0);
             SymItem item = findInStack(indent.getName(), indent, "Var", true);
             node2tableItem.put(indent, item);
-
         }
         for (ASDNode childNode : node.getChild()) {
             travel(childNode, null);
@@ -232,10 +229,10 @@ public class SymLinker {
             String name = param.getName();
             checkTable(name, param.getIndent());
             int dimension = param.getDimension();
-            FuncFormVar formVar = new FuncFormVar(name, dimension, param.getShape(), "<" + currentDepth+1 + "," + depths[currentDepth+1] + ">");
+            FuncFormVar formVar = new FuncFormVar(name, dimension, param.getShape(), "<" + currentDepth + "," + depths[currentDepth+1] + ">");
             currentTable.symItems.add(formVar);
             stack.add(formVar);
-            node2tableItem.put(param, formVar);
+            node2tableItem.put(param.indent, formVar);
         }
     }
 

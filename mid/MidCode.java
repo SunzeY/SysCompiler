@@ -6,7 +6,12 @@ public class MidCode {
     public enum Op {
         ASSIGN, ADD, SUB, MUL, DIV, MOD, PRINT, NOT,
         GETINT, FUNC, END_FUNC, PREPARE_CALL, CALL,
-        PUSH_PARA, RETURN, VAR_DEF, CONST_DEF, NEW_BLOCK, EXIT_BLOCK,
+        PUSH_PARA, RETURN, VAR_DEF, CONST_DEF,
+        ARR_SAVE, ARR_LOAD,  PUSH_PARA_ARR,
+        JUMP_IF, JUMP, LABEL,
+
+        // help_type
+        SIGNAL_ARR_ADDR, NEW_BLOCK, EXIT_BLOCK, WHILE_BIND
     }
 
     public final HashMap<Op, String> toString = new HashMap<Op, String>() {{
@@ -29,6 +34,10 @@ public class MidCode {
         put(Op.CONST_DEF, "CONST_DEF");
         put(Op.NEW_BLOCK, "NEW_BLOCK");
         put(Op.EXIT_BLOCK, "EXIT_BLOCK");
+        put(Op.PUSH_PARA_ARR, "PUSH_PARA_ARR");
+        put(Op.JUMP_IF, "JUMP_IF");
+        put(Op.JUMP, "JUMP");
+        put(Op.LABEL, "LABEL");
     }};
 
     public Op instr;
@@ -48,6 +57,15 @@ public class MidCode {
 
     @Override
     public String toString() {
+        if (instr == Op.LABEL) {
+            return result + ":";
+        }
+        if (instr == Op.JUMP) {
+            return "JUMP" + " " + result;
+        }
+        if (instr == Op.JUMP_IF) {
+            return "JUMP_IF" + " " + operand1.split(" ")[0]  + " " + operand2 + " " + operand1.split(" ")[1]  +  " " + result;
+        }
         if (instr == Op.GETINT) {
             return operand1 + " = " + "input()";
         }
@@ -57,7 +75,7 @@ public class MidCode {
         if (instr == Op.FUNC || instr == Op.END_FUNC) {
             return "#############" + toString.get(instr) + " " + operand1 + " " + operand2 + "############";
         }
-        if (instr == Op.ASSIGN) {
+        if (instr == Op.ASSIGN || instr == Op.ARR_SAVE || instr == Op.ARR_LOAD) {
             return operand1 + " = " + operand2;
         }
         if (!result.equals("#VACANT")) {

@@ -1,5 +1,7 @@
 package front;
 
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -11,6 +13,12 @@ public class ErrorRecorder {
     }
 
     public static void PrintErrorRecord() {
+        PrintStream out = System.out;
+        try {
+            PrintStream os = new PrintStream("error.txt");
+            System.setOut(os);
+        } catch (IOException ignored) {
+        }
         errors.sort(Comparator.comparingInt(o -> o.lineNumber));
         ArrayList<Error> printedErrors = new ArrayList<>();
         for (Error error: errors) {
@@ -24,6 +32,8 @@ public class ErrorRecorder {
             if(tag) System.out.println(error.toString());
             printedErrors.add(error);
         }
+
+        System.setOut(out);
     }
 
     public static boolean withoutError() {

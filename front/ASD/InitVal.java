@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.zip.InflaterInputStream;
 
 public class InitVal implements ASDNode{
+
+
     public enum Type{
         mulInitVal,
         Exp
@@ -53,10 +55,26 @@ public class InitVal implements ASDNode{
     public String gen_mid(MidCodeList midCodeList) {
         String value = "";
         if (this.type.equals(InitVal.Type.Exp)) {
+            Integer try_value = ((Exp) asdNodes.get(0)).getValue();
+            if (try_value != null) { // const initVal
+                return try_value.toString();
+            }
             value = (asdNodes.get(0)).gen_mid(midCodeList);
         } else {
-            // TODO array
+            return "#ARRAY";
         }
         return value;
+
     }
+
+    public void getInitValue(ArrayList<String> initValues, MidCodeList midCodeList) {
+        if (this.type.equals(InitVal.Type.Exp)) {
+            initValues.add((asdNodes.get(0)).gen_mid(midCodeList));
+        } else {
+            for (ASDNode asdNode : asdNodes) {
+                ((InitVal) asdNode).getInitValue(initValues, midCodeList);
+            }
+        }
+    }
+
 }
