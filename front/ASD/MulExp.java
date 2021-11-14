@@ -74,7 +74,7 @@ public class MulExp implements ASDNode{
         int value = unaryExps.get(0).getValue();
         for (int index = 1; index < unaryExps.size(); index += 1) {
             if (Ops.get(index-1).toString().equals("MULT *")) {
-                value = value + unaryExps.get(index).getValue();
+                value = value * unaryExps.get(index).getValue();
             } else {
                 value = value / unaryExps.get(index).getValue();
             }

@@ -69,15 +69,16 @@ public class ConstInitVal implements ASDNode {
         return value;
     }
 
-    public void getInitValue(ArrayList<Integer> initValues) {
+    public void getInitValue(ArrayList<String> initValues, MidCodeList midCodeList) {
         if (this.type.equals(Type.Exp)) {
             try {
-                initValues.add(((ConstExp) asdNodes.get(0)).getValue());
+                initValues.add(Integer.toString(((ConstExp) asdNodes.get(0)).getValue()));
             } catch (Error ignored) {
+                initValues.add((asdNodes.get(0)).gen_mid(midCodeList));
             }
         } else {
             for (ASDNode asdNode : asdNodes) {
-                ((ConstInitVal) asdNode).getInitValue(initValues);
+                ((ConstInitVal) asdNode).getInitValue(initValues, midCodeList);
             }
         }
     }

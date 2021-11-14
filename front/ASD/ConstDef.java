@@ -52,11 +52,11 @@ public class ConstDef implements ASDNode{
         } else {
             String value = constInitVal.gen_mid(midCodeList);
             assert value.equals("#ARRAY");
-            ArrayList<Integer> initValues = new ArrayList<>();
-            constInitVal.getInitValue(initValues);
+            ArrayList<String> initValues = new ArrayList<>();
+            constInitVal.getInitValue(initValues, midCodeList);
             int index = 0;
-            for (Integer res: initValues) {
-                midCodeList.add(MidCode.Op.ARR_SAVE, name + "[" + index + "]", res.toString(), "#VACANT");
+            for (String res: initValues) {
+                midCodeList.add(MidCode.Op.ARR_SAVE, name + "[" + index + "]", res, "#VACANT");
                 index += 1;
             }
         }

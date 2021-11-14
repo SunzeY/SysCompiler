@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Stack;
 
 public class MipsGenerator {
     public boolean optimize_mul_div = false;
@@ -21,6 +22,9 @@ public class MipsGenerator {
     public static final int STACK_T_BEGIN = 56;
     public static final int STACK_S_BEGIN = 24;
     public static final String STACK_RA = "0($sp)";
+    public int call_func_sp_offset = 0;
+
+    public final Stack<Integer> prepare_cnt = new Stack<>();
 
     public HashMap<String, Integer> globalArrayAddr = new HashMap<>();
     public int globalsize = 0;
@@ -62,8 +66,6 @@ public class MipsGenerator {
         put(MidCode.Op.DIV, "div");
         put(MidCode.Op.MOD, "mod");
     }};
-
-    int call_func_sp_offset = 0;
 
     public final String[] reg = new String[]{
             "$zero", "$at", "$v0", "$v1",
@@ -207,13 +209,14 @@ public class MipsGenerator {
                 }
 
             } else if (instr.equals(MidCode.Op.PREPARE_CALL)) {
-                para_number = 0;
+                prepare_cnt.push(0);
                 spSize.add(LOCAL_ADDR_INIT + funcStackSize.get(operand1));
                 call_func_sp_offset = sum(spSize);
                 generate("addi $sp, $sp, -" + spSize.get(spSize.size() - 1));
             } else if (instr.equals(MidCode.Op.PUSH_PARA)) {
+                para_number = prepare_cnt.peek();
                 String para_addr = funcTables.get(operand2).get(para_number).getAddr().toString() + "($sp)";
-                para_number += 1;
+                prepare_cnt.set(prepare_cnt.size()-1, para_number + 1);
                 String reg = "$a1";
 
                 boolean b_in_reg = in_reg(operand1);
@@ -230,8 +233,9 @@ public class MipsGenerator {
                 }
 
             } else if (instr.equals(MidCode.Op.PUSH_PARA_ARR)) {
+                para_number = prepare_cnt.peek();
                 String para_addr = funcTables.get(operand2).get(para_number).getAddr().toString() + "($sp)";
-                para_number += 1;
+                prepare_cnt.set(0, para_number + 1);
                 int rank = 0;
                 if (operand1.split("\\[").length > 1) {
                     String rank_s = operand1.split("\\[")[1].substring(0, operand1.split("\\[")[1].length() - 1);
@@ -242,6 +246,7 @@ public class MipsGenerator {
                 generate("sw", push_reg, para_addr);
 
             } else if (instr.equals(MidCode.Op.CALL)) {
+                prepare_cnt.pop();
                 //protect tRegs
                 show_reg_status();
                 ArrayList<Integer> saved_s = new ArrayList<>(), saved_t = new ArrayList<>();
@@ -249,7 +254,7 @@ public class MipsGenerator {
                 for (int i = 0; i < 10; i += 1) {
                     if (!tRegTable.get(i).equals("#VACANT")) {
                         saved_t.add(i);
-                        generate("sw", "$t" + i, (STACK_T_BEGIN + 4 * i) + "($sp)");
+                        generate("sw", "$t" + i, (STACK_T_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
                         tRegTable.set(i, "#VACANT");
                     }
                 }
@@ -257,7 +262,7 @@ public class MipsGenerator {
                 for (int i = 0; i < 8; i += 1) {
                     if (!sRegTable.get(i).equals("#VACANT")) {
                         saved_s.add(i);
-                        generate("sw", "$s" + i, (STACK_S_BEGIN + 4 * i) + "($sp)");
+                        generate("sw", "$s" + i, (STACK_S_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
                         sRegTable.set(i, "#VACANT");
                     }
                 }
@@ -270,20 +275,19 @@ public class MipsGenerator {
                     generate("lw", "$ra", STACK_RA);
                 }
                 for (int i : saved_s) {
-                    generate("lw", "$s" + i, (STACK_S_BEGIN + 4 * i) + "($sp)");
+                    generate("lw", "$s" + i, (STACK_S_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
                 }
                 sRegTable = s_old;
 
                 //caller recover tRegs
                 for (int i : saved_t) {
-                    generate("lw", "$t" + i, STACK_T_BEGIN + 4 * i + "(sp)");
+                    generate("lw", "$t" + i, (STACK_T_BEGIN + 4 * i + funcStackSize.get(operand1)) + "(sp)");
                 }
                 tRegTable = t_old;
-                if (spSize.get(spSize.size() - 1) != 0) {
-                    generate("addi $sp, $sp, " + spSize.get(spSize.size() - 1));
-                    spSize.remove(spSize.size() - 1);
-                }
+                generate("addi $sp, $sp, " + spSize.get(spSize.size() - 1));
+                spSize.remove(spSize.size() - 1);
                 call_func_sp_offset = sum(spSize);
+
 
             } else if (instr.equals(MidCode.Op.PRINT)) {
                 if (operand1.charAt(0) == '#' && operand1.charAt(1) != 'T') {
@@ -305,9 +309,6 @@ public class MipsGenerator {
                 }
             } else if (is_arithmatic(instr)) {
                 String mips_instr = mipsInstr.get(instr);
-//                if (mips_instr.equals("mod")) {
-//                    System.out.println("aa");
-//                }
                 String reg1 = "$a1";
                 String reg2 = "$a2";
                 boolean a_in_reg = in_reg(result);
@@ -317,7 +318,7 @@ public class MipsGenerator {
                 String a = symbol_to_addr(result);
                 String b = symbol_to_addr(operand1);
                 String c = symbol_to_addr(operand2);
-                if (b.equals("0")) {
+                if (b.equals("2")) {
                     System.out.println(1);
                 }
 //                boolean is_2_pow_1 = is_const(code.operand1) && utils.is_2_power(Integer.getInteger(code.operand1));
@@ -365,6 +366,10 @@ public class MipsGenerator {
                         generate("sw", reg1, a);
                     } else if (b_in_reg_or_const) {
                         generate("lw", reg1, c);
+                        if (is_const(b)) {
+                            generate("li", reg2, b);
+                            b = reg2;
+                        }
                         gen_arithmetic(mips_instr, reg1, b, reg1);
                         generate("sw", reg1, a);
                     } else if (c_in_reg_or_const) {
@@ -422,8 +427,8 @@ public class MipsGenerator {
                             generate("lw", reg, rank);
                             generate("sll", reg, reg, "2");
                         }
-                        gen_arithmetic("addu", reg0, reg0, reg);
-                        item_addr = "0(" + reg0 + ")";
+                        gen_arithmetic("addu", reg, reg0, reg);
+                        item_addr = "0(" + reg + ")";
                     }
                 } else {
                     if (utils.begins_num(rank)) { // const rank
@@ -720,7 +725,7 @@ public class MipsGenerator {
             }
         }
         assert curItem != null;
-        return (call_func_sp_offset - curItem.getAddr()) + "($sp)";
+        return (call_func_sp_offset + curItem.getAddr()) + "($sp)";
     }
 
 

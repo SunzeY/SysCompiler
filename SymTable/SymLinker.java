@@ -23,6 +23,7 @@ import front.ErrorRecorder;
 import front.Token;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -65,6 +66,8 @@ public class SymLinker {
             String funcName = pair.getKey();
             ArrayList<SymItem> funcTable = new ArrayList<>();
             int addr = 4;
+            ArrayList<SymbolTable> tables = pair.getValue();
+            tables.sort(Comparator.comparing(a -> a.int_loc[0]));
             for (SymbolTable table : pair.getValue()) {
                 for (SymItem item: table.symItems) {
                     addr = item.set_addr(addr);
