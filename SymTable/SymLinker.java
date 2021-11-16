@@ -13,6 +13,8 @@ import front.ASD.FuncType;
 import front.ASD.Indent;
 import front.ASD.InitVal;
 import front.ASD.ErrorRepresent;
+import front.ASD.IntConst;
+import front.ASD.LVal;
 import front.ASD.MainFuncDef;
 import front.ASD.PrimaryExp;
 import front.ASD.Stmt;
@@ -22,6 +24,7 @@ import front.Error;
 import front.ErrorRecorder;
 import front.Token;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -86,6 +89,7 @@ public class SymLinker {
         if (node instanceof MainFuncDef) {
             funcTable = new ArrayList<>();
         }
+
          if (node instanceof Block) {
             currentDepth += 1;
             currentTable = new SymbolTable(new int[]{currentDepth, depths[currentDepth]});
@@ -95,10 +99,14 @@ public class SymLinker {
             if (funcFormalArgs != null) { //函数块， 将形参加入符号表
                 addFormalArgs(funcFormalArgs);
             }
-        } else if (node instanceof VarDef) {
+        }
+         if (node instanceof VarDef) {
             VarDef varDef = (VarDef) node;
             checkTable(varDef.getName(), varDef.getIndent());
             String name = varDef.getName();
+             for (ASDNode asdNode: node.getChild()) {
+                 travel(asdNode, null);
+             }
             InitVal initVal = varDef.getInitVal();
             SymItem item = new Var(name, false, initVal, varDef.getDimension(), varDef.getArrayShape(), get_loc());
             currentTable.symItems.add(item);
@@ -108,6 +116,9 @@ public class SymLinker {
             ConstDef constDef = (ConstDef) node;
             checkTable(constDef.getName(), constDef.getIndent());
             String name = constDef.getName();
+             for (ASDNode asdNode: node.getChild()) {
+                 travel(asdNode, null);
+             }
             ConstInitVal constInitVal = constDef.getInitVal();
             SymItem item = new Var(name, true, constInitVal, constDef.getDimension(), constDef.getArrayShape(), get_loc());
             currentTable.symItems.add(item);
@@ -210,6 +221,7 @@ public class SymLinker {
             SymItem item = findInStack(indent.getName(), indent, "Var", true);
             node2tableItem.put(indent, item);
         }
+
         for (ASDNode childNode : node.getChild()) {
             travel(childNode, null);
         }
@@ -223,6 +235,34 @@ public class SymLinker {
         } else if (node instanceof Stmt && (((Stmt) node).getType().equals(Stmt.Type.Assign) ||
                 ((Stmt) node).getType().equals(Stmt.Type.input))) {
             this.inAssign = false;
+        }
+
+        if (node instanceof PrimaryExp && ((PrimaryExp) node).lVal != null) {
+            LVal lVal = ((PrimaryExp) node).lVal;
+            SymItem item = findInStack(lVal.indent.getName(), lVal.indent, "Var", false);
+            assert item != null;
+            if (item.isConst() && item instanceof Var) {
+                Var var = (Var) item;
+                ArrayList<String> initValues = new ArrayList<>();
+                var.constInitVal.getInitValue(initValues);
+                if (lVal.exps.size() == ((Var) item).getShape().size()) {
+                    String value = "";
+                    if (lVal.exps.size() == 0) {
+                        value = initValues.get(0);
+                    } else if (lVal.exps.size() == 1) {
+                        if (lVal.exps.get(0).getValue() != null) { //constExp
+                            value = initValues.get(lVal.exps.get(0).getValue());
+                        }
+                    } else if (lVal.exps.size() == 2) {
+                        if (lVal.exps.get(0).getValue() != null && lVal.exps.get(1).getValue() != null) {
+                            value = initValues.get(var.getShape().get(1) * lVal.exps.get(0).getValue() + lVal.exps.get(1).getValue());
+                        }
+                    }
+                    if (!value.equals("")) {
+                        ((PrimaryExp) node).value = value;
+                    }
+                }
+            }
         }
     }
 

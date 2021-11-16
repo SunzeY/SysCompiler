@@ -109,7 +109,7 @@ public class UnaryExp implements ASDNode{
             if (asdNodes.get(0).toString().equals("PLUS +")) {
                 return ((UnaryExp) this.asdNodes.get(1)).getValue();
             }
-            if (((UnaryOp) asdNodes.get(0)).toString().equals("MINUS -")) {
+            if (((UnaryOp) asdNodes.get(0)).toString().equals("MINU -")) {
                 return -((UnaryExp) this.asdNodes.get(1)).getValue();
             } else if (((UnaryOp) asdNodes.get(0)).toString().equals("Not")) {
                 if (((UnaryExp) this.asdNodes.get(1)).getValue() == 0) {

@@ -10,11 +10,13 @@ public class PrimaryExp implements ASDNode{
     public LVal lVal;
     public Number number;
     private final ArrayList<ASDNode> asdNodes = new ArrayList<>();
+    public String value;
 
     public PrimaryExp(Exp exp) {
         this.exp = exp;
         this.lVal = null;
         this.number = null;
+        this.value = null;
         asdNodes.add(exp);
     }
 
@@ -22,6 +24,7 @@ public class PrimaryExp implements ASDNode{
         this.lVal = lVal;
         this.exp = null;
         this.number = null;
+        this.value = null;
         asdNodes.add(lVal);
     }
 
@@ -29,6 +32,7 @@ public class PrimaryExp implements ASDNode{
         this.number = number;
         this.exp = null;
         this.lVal = null;
+        this.value = null;
         asdNodes.add(number);
     }
 
@@ -85,9 +89,18 @@ public class PrimaryExp implements ASDNode{
     }
 
     public int getValue() throws Error {
-        if (this.number == null) {
-            throw new Error(Error.Type.other_error, -1);
+        if (this.value != null) {
+            return Integer.parseInt(value);
         }
-        return this.number.getValue();
+        if (this.number != null) {
+            return this.number.getValue();
+        }
+        if (this.exp != null) {
+            Integer value = this.exp.getValue();
+            if (value != null) {
+                return this.exp.getValue();
+            }
+        }
+        throw new Error(Error.Type.other_error, -1);
     }
 }

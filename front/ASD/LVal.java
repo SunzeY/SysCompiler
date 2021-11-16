@@ -42,7 +42,7 @@ public class LVal implements ASDNode{
 
     @Override
     public String gen_mid(MidCodeList midCodeList) {
-        // 变量名@<depth, 序号>
+        // 变量名@<depth,序号>
         String name = indent.getName() + "@" + midCodeList.node2symItem.get(indent).get_loc();
         SymItem item = midCodeList.node2symItem.get(indent);
         ArrayList<Integer> shape;
@@ -59,6 +59,9 @@ public class LVal implements ASDNode{
                 name += "[" + midCodeList.add(MidCode.Op.ADD, y, base, "#AUTO") + "]";
             } else {
                 String rank = exps.get(0).gen_mid(midCodeList);
+                if (rank.contains("[")) {
+                    rank = midCodeList.add(MidCode.Op.ARR_LOAD, "#AUTO", rank, "#VACANT");
+                }
                 if (shape.size() != exps.size()) {
                     midCodeList.add(MidCode.Op.SIGNAL_ARR_ADDR, "#VACANT", "#VACANT", "#VACANT");
                 }
@@ -77,4 +80,5 @@ public class LVal implements ASDNode{
     public String getName() {
         return this.indent.getName();
     }
+
 }

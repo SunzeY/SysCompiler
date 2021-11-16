@@ -9,7 +9,7 @@ public class Var implements SymItem{
     private String name;
     private boolean isConst;
     private InitVal initVal;
-    private ConstInitVal constInitVal;
+    public ConstInitVal constInitVal;
     public int addr;
     private int dimension;
     private ArrayList<Integer> shape;

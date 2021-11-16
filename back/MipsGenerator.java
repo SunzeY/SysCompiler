@@ -22,6 +22,7 @@ public class MipsGenerator {
     public static final int STACK_T_BEGIN = 56;
     public static final int STACK_S_BEGIN = 24;
     public static final String STACK_RA = "0($sp)";
+    public static final int _data_start = 0x10010000;
     public int call_func_sp_offset = 0;
 
     public final Stack<Integer> prepare_cnt = new Stack<>();
@@ -235,14 +236,13 @@ public class MipsGenerator {
             } else if (instr.equals(MidCode.Op.PUSH_PARA_ARR)) {
                 para_number = prepare_cnt.peek();
                 String para_addr = funcTables.get(operand2).get(para_number).getAddr().toString() + "($sp)";
-                prepare_cnt.set(0, para_number + 1);
-                int rank = 0;
+                prepare_cnt.set(prepare_cnt.size() - 1, para_number + 1);
+                String rank_s = "0";
                 if (operand1.split("\\[").length > 1) {
-                    String rank_s = operand1.split("\\[")[1].substring(0, operand1.split("\\[")[1].length() - 1);
-                    rank = Integer.parseInt(rank_s);
+                    rank_s = operand1.split("\\[")[1].substring(0, operand1.split("\\[")[1].length() - 1);
                     operand1 = operand1.split("\\[")[0];
                 }
-                String push_reg = symbol_to_addr_array(operand1, rank);
+                String push_reg = symbol_to_addr_array(operand1, rank_s);
                 generate("sw", push_reg, para_addr);
 
             } else if (instr.equals(MidCode.Op.CALL)) {
@@ -348,9 +348,17 @@ public class MipsGenerator {
                 }
                 if (a_in_reg) {
                     if (b_in_reg_or_const && c_in_reg_or_const) {
+                        if (is_const(b)) {
+                            generate("li", reg2, b);
+                            b = reg2;
+                        }
                         gen_arithmetic(mips_instr, a, b, c); // c can be a const
                     } else if (b_in_reg_or_const) {
                         generate("lw", reg1, c);
+                        if (is_const(b)) {
+                            generate("li", reg2, b);
+                            b = reg2;
+                        }
                         gen_arithmetic(mips_instr, a, b, reg1);
                     } else if (c_in_reg_or_const) {
                         generate("lw", reg1, b);
@@ -362,6 +370,10 @@ public class MipsGenerator {
                     }
                 } else {
                     if (b_in_reg_or_const && c_in_reg_or_const) {
+                        if (is_const(b)) {
+                            generate("li", reg2, b);
+                            b = reg2;
+                        }
                         gen_arithmetic(mips_instr, reg1, b, c);
                         generate("sw", reg1, a);
                     } else if (b_in_reg_or_const) {
@@ -397,6 +409,9 @@ public class MipsGenerator {
                     array_op = operand2;
                     a_in_reg = in_reg(operand1);
                     a = symbol_to_addr(operand1);
+                }
+                if (array_op.equals("#T200")) {
+                    System.out.println(array_op);
                 }
                 String item_addr;
                 String reg0 = "$a0";
@@ -537,10 +552,11 @@ public class MipsGenerator {
         return curItem instanceof FuncFormVar;
     }
 
-    private String symbol_to_addr_array(String operand, int rank) {
+    private String symbol_to_addr_array(String operand, String rank) {
         SymItem curItem = null;
         boolean in_global = false;
         String reg = "$a0";
+        String reg1 = "$a1";
         if (!currentFunc.equals("")) {
             for (SymItem item : funcTables.get(currentFunc)) {
                 if (item.getUniqueName().equals(operand)) {
@@ -562,24 +578,72 @@ public class MipsGenerator {
 
         if (curItem instanceof Var) {
             ArrayList<Integer> shape = ((Var) curItem).getShape();
-            if (rank != 0) { // 2-dimension array with a[index] to find addr
-                rank = rank * shape.get(1);
-            }
-            int offset = curItem.getAddr();
-            offset = offset + rank * 4 + call_func_sp_offset;
-            if (in_global) {
-                generate("li " + reg + ", " + (globalArrayAddr.get(curItem.getUniqueName()) + rank * 4));
+            if (Character.isDigit(rank.charAt(0))) {
+                int rank_v = Integer.parseInt(rank);
+                if (rank_v != 0) { // 2-dimension array with a[index] to find addr
+                    rank_v = rank_v * shape.get(1);
+                }
+
+                int offset = curItem.getAddr();
+                offset = offset + rank_v * 4 + call_func_sp_offset;
+                if (in_global) {
+                    generate("li " + reg + ", " + "0x" + Integer.toHexString(globalArrayAddr.get(curItem.getUniqueName()) + rank_v * 4 + _data_start));
+                } else {
+                    generate("move", reg, "$sp");
+                    generate("addiu", reg, reg, Integer.toString(offset));
+                }
             } else {
-                generate("move", reg, "$sp");
-                generate("addiu", reg, reg, Integer.toString(offset));
+                String offset = symbol_to_addr(rank);
+                if (in_reg(rank)) {
+                    generate("sll", reg1, offset, "2");
+                } else {
+                    generate("lw", reg1, offset);
+                    generate("sll", reg1, reg1, "2");
+                }
+                if (in_global) {
+                    if (shape.size() > 1) {
+                        generate("mul", reg1, reg1, shape.get(1).toString());
+                    }
+                    generate("addiu", reg, reg1, "0x" + Integer.toHexString(globalArrayAddr.get(curItem.getUniqueName()) + _data_start));
+                } else {
+                    if (shape.size() > 1) {
+                        generate("mul", reg1, reg1, shape.get(1).toString());
+                    }
+                    generate("addiu", reg, "$sp", Integer.toString(call_func_sp_offset + search_Item(operand).getAddr()));
+                    generate("addu", reg, reg, reg1);
+                }
             }
         } else { // already in funcFormVar(addr)
             ArrayList<Integer> shape = ((FuncFormVar) curItem).getShape();
-            if (rank != 0) { // 2-dimension array with a[index] to find addr
-                rank = rank * shape.get(1);
+            if (Character.isDigit(rank.charAt(0))) {
+                int rank_v = Integer.parseInt(rank);
+                if (rank_v != 0) { // 2-dimension array with a[index] to find addr
+                    rank_v = rank_v * shape.get(1);
+                }
+                if (in_reg(operand)) {
+                    generate("addiu", reg, symbol_to_addr(operand), Integer.toString(rank_v * 4));
+                } else {
+                    generate("lw", reg, symbol_to_addr(operand));
+                    generate("addiu", reg, reg, Integer.toString(rank_v * 4));
+                }
+            } else {
+                String offset = symbol_to_addr(rank);
+                if (in_reg(rank)) {
+                    generate("sll", reg1, offset, "2");
+                } else {
+                    generate("lw", reg1, offset);
+                    generate("sll", reg1, reg1, "2");
+                }
+                if (shape.size() > 1) {
+                    generate("mul", reg1, reg1, shape.get(1).toString());
+                }
+                if (in_reg(operand)) {
+                    generate("addu", reg, symbol_to_addr(operand), reg1);
+                } else {
+                    generate("lw", reg, symbol_to_addr(operand));
+                    generate("addu", reg, reg, reg1);
+                }
             }
-            generate("lw", reg, symbol_to_addr(operand));
-            generate("addiu", reg, reg, Integer.toString(rank * 4));
         }
 
         return reg;

@@ -6,6 +6,7 @@ import SymTable.Var;
 import front.ASD.ASDNode;
 import front.ASD.ConstInitVal;
 import front.ASD.InitVal;
+import sun.rmi.transport.proxy.RMIHttpToPortSocketFactory;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -63,11 +64,11 @@ public class MidCodeList {
                     }
                     operand1 = op1 + " " + op2;
                 }
-                else {
-                    operand1 = this.add(MidCode.Op.ASSIGN, "#AUTO", operand1, "#VACANT");
-                    if (instr.equals(MidCode.Op.ASSIGN) || instr.equals(MidCode.Op.GETINT)) {
-                        instr = MidCode.Op.ARR_SAVE;
-                    }
+                else if (instr.equals(MidCode.Op.ASSIGN) || instr.equals(MidCode.Op.GETINT)){
+                    operand2 = this.add(MidCode.Op.ASSIGN, "#AUTO", operand1, "#VACANT");
+                    instr = MidCode.Op.ARR_SAVE;
+                } else {
+                    operand1 = this.add(MidCode.Op.ARR_LOAD, "#AUTO", operand1, "#VACANT");
                 }
             }
         }
