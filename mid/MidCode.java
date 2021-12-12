@@ -89,4 +89,9 @@ public class MidCode {
         }
         return toString.get(instr) + " " + operand1 + " " + operand2;
     }
+
+    public static boolean is_arith(MidCode.Op op) {
+        return op == Op.ADD || op == Op.SUB || op == Op.MUL || op == Op.DIV;
+    }
+
 }

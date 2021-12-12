@@ -46,6 +46,8 @@ public class LOrExp implements ASDNode{
             String ans = eqExp.gen_mid(midCodeList);
             if (true_label.equals("")) {
                 true_label = midCodeList.add(MidCode.Op.JUMP_IF, ans + " " + "0", "!=", "#AUTO_LABEL");
+            } else {
+                midCodeList.add(MidCode.Op.JUMP_IF, ans + " " + "0", "!=", true_label);
             }
         }
         midCodeList.add(MidCode.Op.ASSIGN, bool_var, "0", "#VACANT");

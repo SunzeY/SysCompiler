@@ -14,7 +14,6 @@ public class UnaryOp implements ASDNode{
 
     @Override
     public void printTestInfo() {
-        System.out.println(token.toString());
         System.out.println("<UnaryOp>");
     }
 

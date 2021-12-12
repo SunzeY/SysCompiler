@@ -60,7 +60,6 @@ public class VarDef implements ASDNode {
     @Override
     public String gen_mid(MidCodeList midCodeList) {
         // 变量名@<depth, 序号>
-        System.out.println(indent);
         String name = indent.getName() + "@" + midCodeList.node2symItem.get(indent).get_loc();
         if (constExps.size() == 0) { // not-Array
             if (initVal != null) {

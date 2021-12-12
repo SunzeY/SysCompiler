@@ -240,7 +240,9 @@ public class SymLinker {
         if (node instanceof PrimaryExp && ((PrimaryExp) node).lVal != null) {
             LVal lVal = ((PrimaryExp) node).lVal;
             SymItem item = findInStack(lVal.indent.getName(), lVal.indent, "Var", false);
-            assert item != null;
+            if (item == null) {
+                return;
+            }
             if (item.isConst() && item instanceof Var) {
                 Var var = (Var) item;
                 ArrayList<String> initValues = new ArrayList<>();

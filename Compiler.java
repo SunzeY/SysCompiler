@@ -13,7 +13,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -60,18 +59,28 @@ public class Compiler {
         SymLinker symLinker = new SymLinker(unit);
         symLinker.link();
         if (!ErrorRecorder.withoutError()) {
+            System.out.println("Error linking your testfile");
             ErrorRecorder.PrintErrorRecord();
+            return;
         }
 
         //generate mid_code
+        System.out.println("finish parsing your code, start generating mid-code...");
         MidCodeList midCodeList = new MidCodeList(symLinker.node2tableItem);
         unit.gen_mid(midCodeList);
-        midCodeList.printCode();
+        midCodeList.printCode("testfilei_19375341_孙泽一_优化前中间代码.txt");
         HashMap<String, ArrayList<SymItem>> funcTables = symLinker.getFuncTable();
         SymbolTable global_table = symLinker.getBlockLoc2table().get("<0,0>");
         midCodeList.addTmp(funcTables, global_table);
 
+
+        // mid_code_optimization
+        midCodeList.arith_to_assign();
+        midCodeList.remove_redundant_assign();
+        midCodeList.printCode("testfilei_19375341_孙泽一_优化后中间代码.txt");
+
         // generate mips_code
+        System.out.println("finish generating mid code, start generating mips-code...");
         MipsGenerator mips = new MipsGenerator(midCodeList.midCodes, midCodeList.strCons, funcTables, global_table);
         mips.translate();
         mips.toFile();

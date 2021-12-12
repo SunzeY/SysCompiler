@@ -82,7 +82,7 @@ public class Parser {
             }
             mainFuncDef = MainFuncDef();
         } catch (Error error) {
-            //...
+            error.printStackTrace();
         }
         if (Compiler.debugging == 2) System.out.println("<CompUnit>");
         return new CompUnit(decls, funcDefs, mainFuncDef);
@@ -166,7 +166,8 @@ public class Parser {
         if (Compiler.debugging == 2) System.out.println(sym().toString());
         getSym();
         if (!symType().equals("RPARENT")) {
-            throw new Error(Error.Type.other_error, -1);
+            ErrorRecorder.recordError(new Error(Error.Type.miss_parent, sym(-1).getLineNum()));
+            tokenIndex -= 1;
         }
         if (Compiler.debugging == 2) System.out.println(sym().toString());
         getSym();
@@ -609,15 +610,11 @@ public class Parser {
                 getSym();
                 if (!symType().equals("SEMICN")) {
                     ErrorRecorder.recordError(new Error(Error.Type.miss_semi, sym(-1).getLineNum()));
-                    this.tokenIndex -= 1;
+                    tokenIndex -= 1;
                 }
             } else {
                 type = Stmt.Type.Assign;
                 asdNodes.add(Exp());
-            }
-            if (!symType().equals("SEMICN")) {
-                ErrorRecorder.recordError(new Error(Error.Type.miss_semi, sym(-1).getLineNum()));
-                this.tokenIndex -= 1;
             }
             if (Compiler.debugging == 2) System.out.println(sym().toString());
             getSym();
@@ -643,6 +640,7 @@ public class Parser {
         Indent indent;
         ArrayList<Exp> exps = new ArrayList<>();
         if (!symType().equals("IDENFR")) {
+            System.out.println(sym(-1).getLineNum());
             throw new Error(Error.Type.other_error, -1);
         }
         indent = new Indent(sym());
@@ -653,7 +651,8 @@ public class Parser {
             getSym();
             exps.add(Exp());
             if (!symType().equals("RBRACK")) {
-                throw new Error(Error.Type.other_error, -1);
+                ErrorRecorder.recordError(new Error(Error.Type.miss_brace, sym(-1).getLineNum()));
+                this.tokenIndex -= 1;
             }
             if (Compiler.debugging == 2) System.out.println(sym().toString());
             getSym();

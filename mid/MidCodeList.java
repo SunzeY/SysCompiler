@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Stack;
+import java.util.regex.Pattern;
 
 public class MidCodeList {
     public ArrayList<MidCode> midCodes;
@@ -65,7 +66,11 @@ public class MidCodeList {
                     operand1 = op1 + " " + op2;
                 }
                 else if (instr.equals(MidCode.Op.ASSIGN) || instr.equals(MidCode.Op.GETINT)){
-                    operand2 = this.add(MidCode.Op.ASSIGN, "#AUTO", operand1, "#VACANT");
+                    if (instr.equals(MidCode.Op.ASSIGN)) {
+                        operand2 = this.add(MidCode.Op.ASSIGN, "#AUTO", operand1, "#VACANT");
+                    } else {
+                        operand2 = this.add(MidCode.Op.GETINT, "#AUTO", "#VACANT", "#VACANT");
+                    }
                     instr = MidCode.Op.ARR_SAVE;
                 } else {
                     operand1 = this.add(MidCode.Op.ARR_LOAD, "#AUTO", operand1, "#VACANT");
@@ -107,18 +112,16 @@ public class MidCodeList {
             operand1 = "#str" + Integer.toString(strCons.size() - 1);
         }
         midCodes.add(new MidCode(instr, operand1, operand2, result));
-        if (result.equals("#T14")) {
-            System.out.println("aa");
-        }
         return result;
     }
 
-    public void printCode() {
+    public void printCode(String fileName) {
         PrintStream out = System.out;
         try {
-            PrintStream os = new PrintStream("19375341_孙泽一_优化前中间代码.txt");
+            PrintStream os = new PrintStream(fileName);
             System.setOut(os);
         } catch (IOException ignored) {
+            ignored.printStackTrace();
         }
         int i = 0;
         for (String strCon: strCons) {
@@ -126,23 +129,26 @@ public class MidCodeList {
             i += 1;
         }
         for (MidCode midCode: midCodes) {
-            System.out.println(midCode.instr + " " + midCode.toString());
+            System.out.println(midCode.toString());
         }
         System.setOut(out);
     }
 
     public void addTmp(HashMap<String, ArrayList<SymItem>> funcTable, SymbolTable global_table) {
         String name = "";
-        int end_addr = 0;
+        int end_addr = 4;
         ArrayList<SymItem> currentFuncTable = null;
         for (MidCode midCode: midCodes) {
             if (midCode.instr.equals(MidCode.Op.FUNC)) {
                 name = midCode.operand2;
                 currentFuncTable = funcTable.get(name);
                 if (currentFuncTable.isEmpty()) {
-                    end_addr = 0;
+                    end_addr = 4;
                 } else {
-                    end_addr = currentFuncTable.get(currentFuncTable.size() - 1).getAddr();
+                    end_addr = currentFuncTable.get(currentFuncTable.size() - 1).getAddr() + currentFuncTable.get(currentFuncTable.size() - 1).getSize();
+                    if (end_addr == 0) { // special debug--funcFormVar[-1][...]
+                        end_addr = 4;
+                    }
                 }
             } else if (midCode.instr.equals(MidCode.Op.END_FUNC)) {
                 name = "";
@@ -162,5 +168,73 @@ public class MidCodeList {
         String result = "label_" + label_cnt;
         label_cnt += 1;
         return result;
+    }
+
+    public void remove_redundant_assign() {
+        ArrayList<MidCode> new_midCodes = new ArrayList<>();
+        for (int i = 0; i < midCodes.size()-1; i+=1) {
+            MidCode c1 = midCodes.get(i);
+            MidCode c2 = midCodes.get(i+1);
+            if (c2.instr.equals(MidCode.Op.ASSIGN)  &&
+                    c1.result.charAt(0) == '#' && c1.result.equals(c2.operand2) && MidCode.is_arith(c1.instr)) {
+                new_midCodes.add(new MidCode(c1.instr, c1.operand1, c1.operand2, c2.operand1));
+                i += 1;
+            } else if (c1.instr == MidCode.Op.ASSIGN && c1.operand1.charAt(0) == '#' && c1.operand1.equals(c2.operand1)
+                    && MidCode.is_arith(c2.instr)) {
+                new_midCodes.add(new MidCode(c2.instr, c1.operand2, c2.operand2, c2.result));
+                i += 1;
+            } else if (c1.instr == MidCode.Op.ASSIGN && c1.operand1.charAt(0) == '#' && c1.operand1.equals(c2.operand2) &&
+                    MidCode.is_arith(c2.instr)) {
+                new_midCodes.add(new MidCode(c2.instr, c2.operand1, c1.operand2, c2.result));
+                i += 1;
+            } else if (i == midCodes.size()-2) {
+                new_midCodes.add(c1);
+                new_midCodes.add(c2);
+            } else {
+                new_midCodes.add(c1);
+            }
+        }
+        midCodes = new_midCodes;
+    }
+
+    public void swap_facter() {
+        ArrayList<MidCode> new_midCode = new ArrayList<>();
+        for (MidCode midCode: midCodes) {
+            if (MidCode.is_arith(midCode.instr) && midCode.instr != MidCode.Op.DIV && begins_num(midCode.operand1) && !begins_num(midCode.operand2)) {
+                new_midCode.add(new MidCode(midCode.instr, midCode.operand2, midCode.operand1, midCode.result));
+            } else {
+                new_midCode.add(midCode);
+            }
+        }
+        midCodes = new_midCode;
+    }
+
+    public void arith_to_assign() {
+        ArrayList<MidCode> new_midCode = new ArrayList<>();
+        for (MidCode midCode: midCodes) {
+            if (midCode.instr == MidCode.Op.MUL && midCode.operand1.equals("1")) {
+                new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand2, "#VACANT"));
+            } else if (midCode.instr == MidCode.Op.MUL && midCode.operand2.equals("1")) {
+                new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand1, "#VACANT"));
+            } else if (midCode.instr == MidCode.Op.DIV && midCode.operand2.equals("1")) {
+                new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand1, "#VACANT"));
+            } else if (midCode.instr == MidCode.Op.MOD && (midCode.operand1.equals("1") || midCode.operand2.equals("1"))) {
+                new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, "0", "#VACANT"));
+            } else if (midCode.instr == MidCode.Op.ADD && midCode.operand1.equals("0")) {
+                new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand2, "#VACANT"));
+            } else if (midCode.instr == MidCode.Op.ADD && midCode.operand2.equals("0")) {
+                new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand1, "#VACANT"));
+            } else if (midCode.instr == MidCode.Op.SUB && midCode.operand2.equals("0")) {
+                new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand1, "#VACANT"));
+            } else {
+                new_midCode.add(midCode);
+            }
+        }
+        midCodes = new_midCode;
+    }
+
+    public static final Pattern IS_DIGIT = Pattern.compile("[0-9]*");
+    public static boolean begins_num(String operand) {
+        return IS_DIGIT.matcher(operand).matches() || operand.charAt(0) == '+' || operand.charAt(0) == '-';
     }
 }

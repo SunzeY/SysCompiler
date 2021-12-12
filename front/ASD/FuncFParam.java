@@ -22,6 +22,7 @@ public class FuncFParam implements ASDNode{
         asdNodes.add(bType);
         asdNodes.add(indent);
         asdNodes.addAll(constExps);
+        this.isArray = dimension > 0;
     }
 
     @Override
@@ -72,7 +73,7 @@ public class FuncFParam implements ASDNode{
 
     public ArrayList<Integer> getShape() throws Error {
         ArrayList<Integer> shape = new ArrayList<>();
-        if (this.dimension != 1) {
+        if (isArray) {
             shape.add(-1);
         }
         for (ConstExp exp: constExps) {

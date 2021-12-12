@@ -15,11 +15,13 @@ import java.util.Objects;
 import java.util.Stack;
 
 public class MipsGenerator {
-    public boolean optimize_mul_div = false;
-    public boolean optimize_assign_reg = false;
+    public boolean optimize_mul = true;
+    public boolean optimize_assign_reg = true;
 
-    public static final int LOCAL_ADDR_INIT = 100;
-    public static final int STACK_T_BEGIN = 56;
+    public boolean div_opt_hard = true;
+
+    public static final int LOCAL_ADDR_INIT = 104;
+    public static final int STACK_T_BEGIN = 60;
     public static final int STACK_S_BEGIN = 24;
     public static final String STACK_RA = "0($sp)";
     public static final int _data_start = 0x10010000;
@@ -40,7 +42,7 @@ public class MipsGenerator {
         add(0);
     }};
     public ArrayList<String> sRegTable = new ArrayList<String>() {{
-        for (int i = 0; i < 8; i += 1) {
+        for (int i = 0; i < 9; i += 1) {
             add("#VACANT");
         }
     }};
@@ -51,10 +53,20 @@ public class MipsGenerator {
     }};
 
     public String assignSReg(String name) {
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < sRegTable.size(); i++) {
             if (sRegTable.get(i).equals("#VACANT")) {
                 sRegTable.set(i, name);
-                return "$s" + i;
+                return (i == sRegTable.size() - 1) ? "$fp" : ("$s" + i);
+            }
+        }
+        return "#INVALID";
+    }
+
+    public String assignTReg(String name) {
+        for (int i = 0; i < 10; i++) {
+            if (tRegTable.get(i).equals("#VACANT")) {
+                tRegTable.set(i, name);
+                return "$t" + i;
             }
         }
         return "#INVALID";
@@ -127,7 +139,24 @@ public class MipsGenerator {
     }
 
     public void generate(String instr, String num1, String num2, String num3) {
+        generate(instr, num1, num2, num3, false);
+    }
+
+    public void generate(String instr, String num1, String num2, String num3, boolean without_release) {
+        if (instr.equals("mul") && is_const(num3) && optimize_mul && utils.is_2_power(Math.abs(Integer.parseInt(num3)))) {
+            int multiplier = Integer.parseInt(num3);
+            if (multiplier > 0) {
+                generate("sll", num1, num2, Integer.toString(utils.log2(multiplier)), without_release);
+            } else {
+                generate("sll", num1, num2, Integer.toString(utils.log2(Math.abs(multiplier))), without_release);
+                generate("subu", num1, "$zero", num1);
+            }
+            return;
+        }
         generate(instr + " " + num1 + ", " + num2 + ", " + num3);
+        if (without_release) {
+            return;
+        }
         if (instr.equals("addu") || instr.equals("subu") || instr.equals("mul") || instr.equals("div") || instr.equals("sll") || instr.equals("sra")) {
             if (!num1.equals(num2)) {
                 release(num2);
@@ -135,16 +164,20 @@ public class MipsGenerator {
             if (!num1.equals(num3)) {
                 release(num3);
             }
-        } else if (instr.equals("beq") || instr.equals("bne")) {
+        } else if (is_con_jump(instr)) {
             release(num1);
+            release(num2);
         }
     }
 
+    private boolean is_con_jump(String instr) {
+        return b_instr.containsValue(instr);
+    }
+
     private void release(String addr) {
-        System.out.println("addr:" + addr);
         if (addr.charAt(0) == '$' && addr.charAt(1) == 't') {
+            generate("# RELEASE " + addr + " bind var " + tRegTable.get(addr.charAt(2) - '0'));
             tRegTable.set(addr.charAt(2) - '0', "#VACANT");
-            generate("# RELEASE" + addr);
         }
     }
 
@@ -168,7 +201,6 @@ public class MipsGenerator {
         generate("addi $gp, $gp, " + this.globalsize);
         for (MidCode code : midCodes) {
             mipsCodes.add("# ====" + code + "====");
-            System.out.println(code.instr);
             MidCode.Op instr = code.instr;
             String operand1 = code.operand1;
             String operand2 = code.operand2;
@@ -183,15 +215,17 @@ public class MipsGenerator {
                 currentFunc = operand2;
                 mipsCodes.add(operand2 + ":");
                 call_func_sp_offset = 0;
-                for (int i = 0; i < 8; i++) {
+                for (int i = 0; i < sRegTable.size(); i++) {
                     sRegTable.set(i, "#VACANT");
                 }
                 for (SymItem item : funcTables.get(currentFunc)) {
-                    String sReg = assignSReg(item.getUniqueName());
-                    if (!sReg.equals("#INVALID")) {
-                        generate("lw", sReg, (item.getAddr() + call_func_sp_offset) + "($sp)");
-                    } else {
-                        break;
+                    if (item instanceof FuncFormVar) {
+                        String sReg = assignSReg(item.getUniqueName());
+                        if (!sReg.equals("#INVALID")) {
+                            generate("lw", sReg, (item.getAddr() + call_func_sp_offset) + "($sp)");
+                        } else {
+                            break;
+                        }
                     }
                 }
 
@@ -217,10 +251,10 @@ public class MipsGenerator {
             } else if (instr.equals(MidCode.Op.PUSH_PARA)) {
                 para_number = prepare_cnt.peek();
                 String para_addr = funcTables.get(operand2).get(para_number).getAddr().toString() + "($sp)";
-                prepare_cnt.set(prepare_cnt.size()-1, para_number + 1);
+                prepare_cnt.set(prepare_cnt.size() - 1, para_number + 1);
                 String reg = "$a1";
 
-                boolean b_in_reg = in_reg(operand1);
+                boolean b_in_reg = in_reg(operand1) || assign_reg(operand1, true);
                 String b = symbol_to_addr(operand1);
 
                 if (b_in_reg) {
@@ -247,11 +281,9 @@ public class MipsGenerator {
 
             } else if (instr.equals(MidCode.Op.CALL)) {
                 prepare_cnt.pop();
-                //protect tRegs
-                show_reg_status();
                 ArrayList<Integer> saved_s = new ArrayList<>(), saved_t = new ArrayList<>();
                 ArrayList<String> t_old = (ArrayList<String>) tRegTable.clone();
-                for (int i = 0; i < 10; i += 1) {
+                for (int i = 0; i < tRegTable.size(); i += 1) {
                     if (!tRegTable.get(i).equals("#VACANT")) {
                         saved_t.add(i);
                         generate("sw", "$t" + i, (STACK_T_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
@@ -259,10 +291,10 @@ public class MipsGenerator {
                     }
                 }
                 ArrayList<String> s_old = (ArrayList<String>) sRegTable.clone();
-                for (int i = 0; i < 8; i += 1) {
+                for (int i = 0; i < sRegTable.size(); i += 1) {
                     if (!sRegTable.get(i).equals("#VACANT")) {
                         saved_s.add(i);
-                        generate("sw", "$s" + i, (STACK_S_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
+                        generate("sw", ((i == sRegTable.size() - 1) ? "$fp" : ("$s" + i)), (STACK_S_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
                         sRegTable.set(i, "#VACANT");
                     }
                 }
@@ -275,13 +307,13 @@ public class MipsGenerator {
                     generate("lw", "$ra", STACK_RA);
                 }
                 for (int i : saved_s) {
-                    generate("lw", "$s" + i, (STACK_S_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
+                    generate("lw", ((i == sRegTable.size() - 1) ? "$fp" : ("$s" + i)), (STACK_S_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
                 }
                 sRegTable = s_old;
 
                 //caller recover tRegs
                 for (int i : saved_t) {
-                    generate("lw", "$t" + i, (STACK_T_BEGIN + 4 * i + funcStackSize.get(operand1)) + "(sp)");
+                    generate("lw", "$t" + i, (STACK_T_BEGIN + 4 * i + funcStackSize.get(operand1)) + "($sp)");
                 }
                 tRegTable = t_old;
                 generate("addi $sp, $sp, " + spSize.get(spSize.size() - 1));
@@ -311,16 +343,13 @@ public class MipsGenerator {
                 String mips_instr = mipsInstr.get(instr);
                 String reg1 = "$a1";
                 String reg2 = "$a2";
-                boolean a_in_reg = in_reg(result);
-                boolean b_in_reg_or_const = is_const(operand1) || in_reg(operand1);
-                boolean c_in_reg_or_const = is_const(operand2) || in_reg(operand2);
+                boolean a_in_reg = in_reg(result) || assign_reg(result, false);
+                boolean b_in_reg_or_const = is_const(operand1) || in_reg(operand1) || assign_reg(operand1, true);
+                boolean c_in_reg_or_const = is_const(operand2) || in_reg(operand2) || assign_reg(operand2, true);
 
                 String a = symbol_to_addr(result);
                 String b = symbol_to_addr(operand1);
                 String c = symbol_to_addr(operand2);
-                if (b.equals("2")) {
-                    System.out.println(1);
-                }
 //                boolean is_2_pow_1 = is_const(code.operand1) && utils.is_2_power(Integer.getInteger(code.operand1));
 //                boolean is_2_pow_2 = is_const(code.operand2) && utils.is_2_power(Integer.getInteger(code.operand2));
 
@@ -343,6 +372,65 @@ public class MipsGenerator {
                     } else {
                         generate("li", reg1, Integer.toString(ans));
                         generate("sw", reg1, a);
+                    }
+                    continue;
+                }
+                if ((instr.equals(MidCode.Op.DIV) || instr.equals(MidCode.Op.MOD)) && is_const(operand2) && div_opt_hard) {
+                    if (!in_reg(operand1)) {
+                        generate("lw", reg2, b);
+                        b = reg2;
+                    }
+                    String reg3 = "$a3";
+                    String reg4 = "$a0";
+                    if (a_in_reg && !b.equals(a)) { // !(a = a / 4)
+                        reg4 = a;
+                    }
+                    int d = Integer.parseInt(c);
+                    long[] multiplier = utils.choose_multiplier(Math.abs(d), utils.N-1);
+                    long m = multiplier[0];
+                    long sh_post = multiplier[1];
+                    long l = multiplier[2];
+                    int q = 0;
+                    if (d == 1 || d == -1) {
+                        if (d == 1) {
+                            generate("move", reg4, b);
+                        } else {
+                            generate("subu", reg4, "$zero", b);
+                        }
+                    } else if (Math.abs(d) == 1 << l) {
+                        generate("sra", reg3, b, Integer.toString((int) (l - 1)));
+                        generate("srl", reg4, reg3, Integer.toString((int) (utils.N - l)));
+                        generate("addu", reg3, b, reg4, true);
+                        generate("sra", reg4, reg3, Integer.toString((int) l));
+                    } else if (m < (1L << (utils.N - 1))) {
+                        generate("li", reg3, Integer.toString((int) m));
+                        generate("mult", b, reg3);
+                        generate("mfhi", reg3);
+                        generate("sra", reg4, reg3, Integer.toString((int) sh_post));
+                        generate("sra", reg3, b, String.valueOf(31));
+                        generate("subu", reg4, reg4, reg3, true);
+                    } else {
+                        generate("li", reg3, Integer.toString((int) (m - Math.pow(2, utils.N))));
+                        generate("mult", b, reg3);
+                        generate("mfhi", reg3);
+                        generate("addu", reg3, b, reg3);
+                        generate("sra", reg4, reg3, Integer.toString((int) sh_post));
+                        generate("sra", reg3, b, String.valueOf(31));
+                        generate("subu", reg4, reg4, reg3, true);
+                    }
+                    if (d < 0) {
+                        generate("subu", reg4, "$zero", reg4);
+                    }
+
+                    if (instr.equals(MidCode.Op.MOD)) {
+                        generate("mul", reg3, reg4, Integer.toString(d), true);
+                        generate("subu", reg4, b, reg3);
+                    }
+
+                    if (!a_in_reg) {
+                        generate("sw", reg4, a);
+                    } else if (b.equals(a)) { // a = a / 4;
+                        generate("move", a, reg4);
                     }
                     continue;
                 }
@@ -403,21 +491,17 @@ public class MipsGenerator {
                 String a;
                 if (instr.equals(MidCode.Op.ARR_SAVE)) {
                     array_op = operand1;
-                    a_in_reg = in_reg(operand2);
+                    a_in_reg = in_reg(operand2) || assign_reg(result, true);
                     a = symbol_to_addr(operand2);
                 } else {
                     array_op = operand2;
-                    a_in_reg = in_reg(operand1);
+                    a_in_reg = in_reg(operand1) || assign_reg(result, false);
                     a = symbol_to_addr(operand1);
-                }
-                if (array_op.equals("#T200")) {
-                    System.out.println(array_op);
                 }
                 String item_addr;
                 String reg0 = "$a0";
                 String reg = "$a1";
                 String reg2 = "$a2";
-
 
                 // symbol[rank]
                 String symbol = array_op.split("\\[")[0];
@@ -498,8 +582,8 @@ public class MipsGenerator {
             } else if (instr.equals(MidCode.Op.JUMP_IF)) {
                 String num1 = operand1.split(" ")[0];
                 String num2 = operand1.split(" ")[1];
-                boolean a_in_reg = in_reg(num1);
-                boolean b_in_reg = in_reg(num2);
+                boolean a_in_reg = in_reg(num1) || assign_reg(num1, true);
+                boolean b_in_reg = in_reg(num2) || assign_reg(num2, true);
                 String a = symbol_to_addr(num1);
                 String b = symbol_to_addr(num2);
                 String reg1 = "$a1";
@@ -610,7 +694,7 @@ public class MipsGenerator {
                         generate("mul", reg1, reg1, shape.get(1).toString());
                     }
                     generate("addiu", reg, "$sp", Integer.toString(call_func_sp_offset + search_Item(operand).getAddr()));
-                    generate("addu", reg, reg, reg1);
+                    generate("add", reg, reg, reg1);
                 }
             }
         } else { // already in funcFormVar(addr)
@@ -638,10 +722,10 @@ public class MipsGenerator {
                     generate("mul", reg1, reg1, shape.get(1).toString());
                 }
                 if (in_reg(operand)) {
-                    generate("addu", reg, symbol_to_addr(operand), reg1);
+                    generate("add", reg, symbol_to_addr(operand), reg1);
                 } else {
                     generate("lw", reg, symbol_to_addr(operand));
-                    generate("addu", reg, reg, reg1);
+                    generate("add", reg, reg, reg1);
                 }
             }
         }
@@ -683,6 +767,7 @@ public class MipsGenerator {
                         release(num3);
                     }
                 } else {
+                    generate("li", reg3, num2);
                     generate(mips_instr, num1, reg3, num3);
                 }
             } else {
@@ -732,6 +817,7 @@ public class MipsGenerator {
         }
     }
 
+
     private String assign_label() {
         String ret = "tmp_label_" + tmp_label_idx;
         tmp_label_idx += 1;
@@ -740,11 +826,11 @@ public class MipsGenerator {
 
     private void show_reg_status() {
         System.out.println("^^^^^^^^^^REG_TABLE^^^^^^^^^^");
-        for (int i = 0; i < 10; i += 1) {
+        for (int i = 0; i < tRegTable.size(); i += 1) {
             System.out.println("$t" + i + ": " + tRegTable.get(i));
         }
-        for (int i = 0; i < 8; i += 1) {
-            System.out.println("$s" + i + ": " + sRegTable.get(i));
+        for (int i = 0; i < sRegTable.size(); i += 1) {
+            System.out.println(((i == 8) ? "$fp" : ("$s" + i)) + ": " + sRegTable.get(i));
         }
         System.out.println("^^^^^^^^^^REG_TABLE^^^^^^^^^^");
     }
@@ -761,15 +847,15 @@ public class MipsGenerator {
             return "$v0";
         }
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < tRegTable.size(); i++) {
             if (tRegTable.get(i).equals(operand)) {
                 return "$t" + i;
             }
         }
 
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < sRegTable.size(); i++) {
             if (sRegTable.get(i).equals(operand)) {
-                return "$s" + i;
+                return (i == sRegTable.size() - 1) ? "$fp" : ("$s" + i);
             }
         }
         SymItem curItem = null;
@@ -800,13 +886,13 @@ public class MipsGenerator {
         if (is_const(operand)) {
             return false;
         }
-        for (int i = 0; i < 10; i++) {
-            if (tRegTable.get(i).equals(operand)) {
+        for (String s : tRegTable) {
+            if (s.equals(operand)) {
                 return true;
             }
         }
-        for (int i = 0; i < 8; i++) {
-            if (sRegTable.get(i).equals(operand)) {
+        for (String s : sRegTable) {
+            if (s.equals(operand)) {
                 return true;
             }
         }
@@ -832,7 +918,7 @@ public class MipsGenerator {
     }
 
     private void gen_assign(String operand1, String operand2) {
-        boolean a_in_reg = in_reg(operand1);
+        boolean a_in_reg = in_reg(operand1) || assign_reg(operand1, false);
         String a = symbol_to_addr(operand1);
 
         String reg = "$a1";
@@ -840,7 +926,7 @@ public class MipsGenerator {
         if (a_in_reg) {
             load_value(operand2, a);
         } else {
-            boolean b_in_reg = in_reg(operand2);
+            boolean b_in_reg = in_reg(operand2) || assign_reg(operand2, false);
             String b = symbol_to_addr(operand2);
             if (b_in_reg) {
                 generate("sw", b, a);
@@ -855,7 +941,7 @@ public class MipsGenerator {
     }
 
     private void save_value(String reg, String operand1) {
-        boolean in_reg = in_reg(operand1);
+        boolean in_reg = in_reg(operand1) || assign_reg(operand1, false);
         String addr = symbol_to_addr(operand1);
         if (in_reg) {
             generate("move " + addr + ", " + reg);
@@ -867,7 +953,7 @@ public class MipsGenerator {
     }
 
     private void load_value(String operand, String reg) {
-        boolean in_reg = in_reg(operand);
+        boolean in_reg = in_reg(operand) || assign_reg(operand, true);
         String addr = symbol_to_addr(operand);
         if (in_reg) {
             generate("move", reg, addr);
@@ -890,5 +976,40 @@ public class MipsGenerator {
         }
 
         System.setOut(out);
+    }
+
+    public boolean assign_reg(String symbol, boolean only_para) {
+        if (symbol.charAt(0) != '#' && !in_global(symbol) && optimize_assign_reg && !is_const(symbol)) {
+            SymItem item = findItem(symbol);
+            if (item instanceof Var && !only_para) {
+                String s_reg = assignSReg(symbol);
+                return !s_reg.equals("#INVALID");
+            }
+        } else if (symbol.charAt(0) == '#' && !only_para && optimize_assign_reg) {
+            String t_reg = assignTReg(symbol);
+            return !t_reg.equals("#INVALID");
+        }
+        return false;
+    }
+
+    public SymItem findItem(String operand) {
+        SymItem curItem = null;
+        if (!currentFunc.equals("")) {
+            for (SymItem item : funcTables.get(currentFunc)) {
+                if (item.getUniqueName().equals(operand)) {
+                    curItem = item;
+                    break;
+                }
+            }
+        }
+        if (curItem == null) {
+            for (SymItem item : globalTable.symItems) {
+                if (item.getUniqueName().equals(operand)) {
+                    curItem = item;
+                }
+            }
+        }
+        assert curItem != null;
+        return curItem;
     }
 }

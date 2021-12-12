@@ -55,8 +55,17 @@ public class LVal implements ASDNode{
             if (shape.size() > 1 && shape.size() == exps.size()) {
                 String x = exps.get(0).gen_mid(midCodeList);
                 String y = exps.get(1).gen_mid(midCodeList);
-                String base = midCodeList.add(MidCode.Op.MUL, x, shape.get(1).toString(), "#AUTO");
-                name += "[" + midCodeList.add(MidCode.Op.ADD, y, base, "#AUTO") + "]";
+                String base;
+                try {
+                   base =  String.valueOf(Integer.parseInt(x) * Integer.parseInt(shape.get(1).toString()));
+                } catch (Exception ignore) {
+                    base = midCodeList.add(MidCode.Op.MUL, x, shape.get(1).toString(), "#AUTO");
+                }
+                try {
+                    name += "[" + (Integer.parseInt(y) + Integer.parseInt(base)) + "]";
+                } catch (Exception ignore) {
+                    name += "[" + midCodeList.add(MidCode.Op.ADD, y, base, "#AUTO") + "]";
+                }
             } else {
                 String rank = exps.get(0).gen_mid(midCodeList);
                 if (rank.contains("[")) {

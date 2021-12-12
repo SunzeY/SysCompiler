@@ -56,6 +56,10 @@ public class UnaryExp implements ASDNode{
 
     @Override
     public String gen_mid(MidCodeList midCodeList) {
+        try {
+            return Integer.toString(this.getValue());
+        } catch (Error ignored) {
+        }
         if (this.type.equals(Type.mulUnaryExp)) {
             String type = ((UnaryOp) asdNodes.get(0)).getType();
             MidCode.Op op = type.equals("MINU") ? MidCode.Op.SUB :

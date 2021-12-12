@@ -43,6 +43,10 @@ public class MulExp implements ASDNode{
 
     @Override
     public String gen_mid(MidCodeList midCodeList) {
+        try {
+            return Integer.toString(this.getValue());
+        } catch (Error ignored) {
+        }
         String op1 = unaryExps.get(0).gen_mid(midCodeList);
         String result = op1;
         for (int i =0; i < Ops.size(); i += 1) {
@@ -75,8 +79,10 @@ public class MulExp implements ASDNode{
         for (int index = 1; index < unaryExps.size(); index += 1) {
             if (Ops.get(index-1).toString().equals("MULT *")) {
                 value = value * unaryExps.get(index).getValue();
-            } else {
+            } else if (Ops.get(index-1).toString().equals("DIV /")){
                 value = value / unaryExps.get(index).getValue();
+            } else {
+                value = value % unaryExps.get(index).getValue();
             }
         }
         return value;

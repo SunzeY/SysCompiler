@@ -46,6 +46,8 @@ public class LAndExp implements ASDNode{
             String ans = eqExp.gen_mid(midCodeList);
             if (false_label.equals("")) {
                 false_label = midCodeList.add(MidCode.Op.JUMP_IF, ans + " " + "0", "==", "#AUTO_LABEL");
+            } else {
+                midCodeList.add(MidCode.Op.JUMP_IF, ans + " " + "0", "==", false_label);
             }
         }
         midCodeList.add(MidCode.Op.ASSIGN, bool_var, "1", "#VACANT");

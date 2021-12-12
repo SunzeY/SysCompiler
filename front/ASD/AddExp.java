@@ -41,6 +41,10 @@ public class AddExp implements ASDNode{
 
     @Override
     public String gen_mid(MidCodeList midCodeList) {
+        try {
+            return Integer.toString(this.getValue());
+        } catch (Error ignored) {
+        }
         String op1 = mulExps.get(0).gen_mid(midCodeList);
         String result = op1;
         for (int i =0; i < Ops.size(); i += 1) {
