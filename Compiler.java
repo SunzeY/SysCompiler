@@ -77,6 +77,7 @@ public class Compiler {
         // mid_code_optimization
         midCodeList.arith_to_assign();
         midCodeList.remove_redundant_assign();
+        midCodeList.remove_redundant_tmp();
         midCodeList.printCode("testfilei_19375341_孙泽一_优化后中间代码.txt");
 
         // generate mips_code

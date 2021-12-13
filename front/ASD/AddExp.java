@@ -81,4 +81,8 @@ public class AddExp implements ASDNode{
         }
         return value;
     }
+
+    public boolean isFunCall() {
+        return this.mulExps.size() == 1 && mulExps.get(0).isFunCall();
+    }
 }

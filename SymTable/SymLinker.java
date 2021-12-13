@@ -46,7 +46,7 @@ public class SymLinker {
     private final HashMap<String, SymbolTable> name2Table = new HashMap<>();
     private String currentFucName;
     private boolean inAssign = false;
-
+    private SymbolTable currentFormVarTable; // for recursive-call only
     public SymLinker(ASDNode root) {
         this.root = root;
         this.currentDepth = 0;
@@ -72,7 +72,7 @@ public class SymLinker {
             ArrayList<SymbolTable> tables = pair.getValue();
             tables.sort(Comparator.comparing(a -> a.int_loc[0]));
             for (SymbolTable table : pair.getValue()) {
-                for (SymItem item: table.symItems) {
+                for (SymItem item : table.symItems) {
                     addr = item.set_addr(addr);
                     funcTable.add(item);
                 }
@@ -90,7 +90,7 @@ public class SymLinker {
             funcTable = new ArrayList<>();
         }
 
-         if (node instanceof Block) {
+        if (node instanceof Block) {
             currentDepth += 1;
             currentTable = new SymbolTable(new int[]{currentDepth, depths[currentDepth]});
             blockLoc2table.put("<" + currentDepth + "," + depths[currentDepth] + ">", currentTable);
@@ -100,13 +100,13 @@ public class SymLinker {
                 addFormalArgs(funcFormalArgs);
             }
         }
-         if (node instanceof VarDef) {
+        if (node instanceof VarDef) {
             VarDef varDef = (VarDef) node;
-            checkTable(varDef.getName(), varDef.getIndent());
+            checkTable(varDef.getName(), varDef.getIndent(), "Var");
             String name = varDef.getName();
-             for (ASDNode asdNode: node.getChild()) {
-                 travel(asdNode, null);
-             }
+            for (ASDNode asdNode : node.getChild()) {
+                travel(asdNode, null);
+            }
             InitVal initVal = varDef.getInitVal();
             SymItem item = new Var(name, false, initVal, varDef.getDimension(), varDef.getArrayShape(), get_loc());
             currentTable.symItems.add(item);
@@ -114,18 +114,18 @@ public class SymLinker {
             node2tableItem.put(((VarDef) node).indent, item);
         } else if (node instanceof ConstDef) {
             ConstDef constDef = (ConstDef) node;
-            checkTable(constDef.getName(), constDef.getIndent());
+            checkTable(constDef.getName(), constDef.getIndent(), "Var");
             String name = constDef.getName();
-             for (ASDNode asdNode: node.getChild()) {
-                 travel(asdNode, null);
-             }
+            for (ASDNode asdNode : node.getChild()) {
+                travel(asdNode, null);
+            }
             ConstInitVal constInitVal = constDef.getInitVal();
             SymItem item = new Var(name, true, constInitVal, constDef.getDimension(), constDef.getArrayShape(), get_loc());
             currentTable.symItems.add(item);
             stack.add(item);
             node2tableItem.put(((ConstDef) node).indent, item);
         } else if (node instanceof FuncDef) {
-            checkTable(((FuncDef) node).getName(), ((FuncDef) node).getIndent());
+            checkTable(((FuncDef) node).getName(), ((FuncDef) node).getIndent(), "Func");
             String name = ((FuncDef) node).getName();
             Integer argc = ((FuncDef) node).getArgc();
             Func.Type type = ((FuncDef) node).getType().equals(FuncType.Type.Int) ? Func.Type.intFunc : Func.Type.voidFunc;
@@ -146,16 +146,21 @@ public class SymLinker {
             if (node.getChild().size() > 1) {
                 size = node.getChild().get(1).getChild().size();
             }
-            if (item != null && ((Func) item).getType().equals(Func.Type.voidFunc) && this.inAssign) {
-                //TODO
-            }
             if (item != null && !((Func) item).checkForm(size)) {
                 ErrorRecorder.recordError(new Error(Error.Type.func_arg_cnt_mismatch, indent.getLineNum()));
-                node2tableItem.put(indent, item);
             } else {
                 if (node.getChild().size() > 1) {
                     String funcName = ((Indent) node.getChild().get(0)).getName();
                     SymbolTable table = name2Table.get(funcName);
+                    if (funcName == null) {
+                        return;
+                    }
+                    if (table == null && funcName.equals(currentFucName)) { // recursive_call
+                        table = currentFormVarTable;
+                        if (currentTable == null) {
+                            return;
+                        }
+                    }
                     if (!(table == null)) {  // happen when no name find!
                         int index = 0;
                         ArrayList<Integer> realShape = null;
@@ -165,35 +170,32 @@ public class SymLinker {
                             if (exp.getName() != null) {
                                 SymItem funcCall = findInStack(exp.getName(), indent, "Func", false);
                                 if (funcCall != null) {
-                                    if (((Func) funcCall).getType().equals(Func.Type.voidFunc)) {
+                                    if (((Func) funcCall).getType().equals(Func.Type.voidFunc) && exp.isFunCall()) {
                                         ErrorRecorder.recordError(new Error(Error.Type.func_arg_type_mismatch, indent.getLineNum()));
+                                        index += 1;
+                                        continue;
+                                    } else if (((Func) funcCall).getType().equals(Func.Type.intFunc) && exp.isFunCall()) {
+                                        if (((FuncFormVar) table.getTable().get(index)).getDimension() != 0) {
+                                            ErrorRecorder.recordError(new Error(Error.Type.func_arg_type_mismatch, indent.getLineNum()));
+                                        }
+                                        index += 1;
+                                        continue;
                                     }
-                                    continue;
                                 }
-                                SymItem symItem = findInStack(exp.getName(), null, "Var", true);
+                                SymItem symItem = findInStack(exp.getName(), null, "Var", false);
                                 if (symItem == null) {
                                     break;
                                 }
-                                int var_dimension = 0;
+                                int var_dimension;
                                 if (symItem instanceof Var) {
                                     var_dimension = ((Var) symItem).getDimension();
-                                    realShape = ((Var) symItem).getShape();
                                 } else {
                                     var_dimension = ((FuncFormVar) symItem).getDimension();
-                                    realShape = ((FuncFormVar) symItem).getShape();
                                 }
                                 formDimension = var_dimension - exp.getDimension();
                             }
                             if (((FuncFormVar) table.getTable().get(index)).getDimension() != formDimension) {
                                 ErrorRecorder.recordError(new Error(Error.Type.func_arg_type_mismatch, indent.getLineNum()));
-//                            } else if (formDimension > 0) {
-//                                ArrayList<Integer> formalShape = ((FuncFormVar) table.getTable().get(index)).getShape();
-//                                for (int i=1; i <formDimension; i++) {
-//                                    if (!realShape.get(i + exp.getDimension() ).equals(formalShape.get(i))) {
-//                                        ErrorRecorder.recordError(new Error(Error.Type.func_arg_type_mismatch, indent.getLineNum()));
-//                                    }
-//                                }
-//                            }
                             }
                             index += 1;
                         }
@@ -216,7 +218,7 @@ public class SymLinker {
             if (formatString.getFormatCharNum() != node.getChild().size() - 2) {
                 ErrorRecorder.recordError(new Error(Error.Type.printf_num_miss_match, token.getLineNum()));
             }
-        } else if (node instanceof PrimaryExp &&((PrimaryExp) node).lVal != null) {
+        } else if (node instanceof PrimaryExp && ((PrimaryExp) node).lVal != null) {
             Indent indent = (Indent) ((PrimaryExp) node).lVal.getChild().get(0);
             SymItem item = findInStack(indent.getName(), indent, "Var", true);
             node2tableItem.put(indent, item);
@@ -270,14 +272,16 @@ public class SymLinker {
 
     private void addFormalArgs(ASDNode funcFormalArgs) throws Error {
         FuncFParams params = (FuncFParams) funcFormalArgs;
-        for (FuncFParam param: params.getFuncFParams()) {
+        currentFormVarTable = new SymbolTable(new int[]{-1, -1});
+        for (FuncFParam param : params.getFuncFParams()) {
             String name = param.getName();
-            checkTable(name, param.getIndent());
+            checkTable(name, param.getIndent(), "Var");
             int dimension = param.getDimension();
-            FuncFormVar formVar = new FuncFormVar(name, dimension, param.getShape(), "<" + currentDepth + "," + depths[currentDepth+1] + ">");
+            FuncFormVar formVar = new FuncFormVar(name, dimension, param.getShape(), "<" + currentDepth + "," + depths[currentDepth + 1] + ">");
             currentTable.symItems.add(formVar);
             stack.add(formVar);
             node2tableItem.put(param.indent, formVar);
+            currentFormVarTable.symItems.add(formVar);
         }
     }
 
@@ -288,8 +292,7 @@ public class SymLinker {
             if (item.getName().equals(name)) {
                 if (item instanceof Func && type.equals("Func")) {
                     return item;
-                }
-                else if ((item instanceof Var || item instanceof FuncFormVar) && type.equals("Var")) {
+                } else if ((item instanceof Var || item instanceof FuncFormVar) && type.equals("Var")) {
                     return item;
                 }
             }
@@ -298,9 +301,9 @@ public class SymLinker {
         return null; //返回null一定要检查！
     }
 
-    private void checkTable(String name, Indent indent) {
+    private void checkTable(String name, Indent indent, String type) {
         for (SymItem item : currentTable.symItems) {
-            if (item.getName().equals(name)) {
+            if (item.getName().equals(name) && ((type.equals("Func") && item instanceof Func) || ((item instanceof Var || item instanceof FuncFormVar) && type.equals("Var")))) {
                 ErrorRecorder.recordError(new Error(Error.Type.name_redefine, indent.getLineNum()));
             }
         }
@@ -333,6 +336,7 @@ public class SymLinker {
 
     private final Stack<BlockType> blockStack = new Stack<>();
     private int returnNum;
+
     private void travelForCheck(ASDNode node) {
         if (node == null) {
             return;
@@ -343,7 +347,7 @@ public class SymLinker {
         } else if (node instanceof FuncDef && ((FuncDef) node).getType().equals(FuncType.Type.Int)) {
             blockStack.add(BlockType.intFuncBlock);
             returnNum = 0;
-            Block block = (Block) node.getChild().get(node.getChild().size()-2);
+            Block block = (Block) node.getChild().get(node.getChild().size() - 2);
             if (block.getChild().size() != 0) {
                 ASDNode stmt = block.getChild().get(block.getChild().size() - 1).getChild().get(0);
                 if (!(stmt instanceof Stmt
@@ -351,14 +355,13 @@ public class SymLinker {
                     ErrorRecorder.recordError(new Error(Error.Type.non_void_non_return,
                             ((ErrorRepresent) node.getChild().get(node.getChild().size() - 1)).getToken().getLineNum()));
                 }
-            }
-            else {
+            } else {
                 ErrorRecorder.recordError(new Error(Error.Type.non_void_non_return,
                         ((ErrorRepresent) node.getChild().get(node.getChild().size() - 1)).getToken().getLineNum()));
             }
         } else if (node instanceof MainFuncDef) {
             blockStack.add(BlockType.intFuncBlock);
-            Block block = (Block) node.getChild().get(node.getChild().size()-2);
+            Block block = (Block) node.getChild().get(node.getChild().size() - 2);
             boolean noReturn = false;
             if (block.getChild().size() != 0) {
                 ASDNode stmt = block.getChild().get(block.getChild().size() - 1).getChild().get(0);
@@ -367,8 +370,7 @@ public class SymLinker {
                     ErrorRecorder.recordError(new Error(Error.Type.non_void_non_return,
                             ((ErrorRepresent) node.getChild().get(node.getChild().size() - 1)).getToken().getLineNum()));
                 }
-            }
-            else {
+            } else {
                 ErrorRecorder.recordError(new Error(Error.Type.non_void_non_return,
                         ((ErrorRepresent) node.getChild().get(node.getChild().size() - 1)).getToken().getLineNum()));
             }

@@ -107,4 +107,8 @@ public class PrimaryExp implements ASDNode{
         }
         throw new Error(Error.Type.other_error, -1);
     }
+
+    public boolean isFunCall() {
+        return this.exp != null && this.exp.isFunCall();
+    }
 }

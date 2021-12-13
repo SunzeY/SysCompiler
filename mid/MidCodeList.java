@@ -3,6 +3,7 @@ package mid;
 import SymTable.SymItem;
 import SymTable.SymbolTable;
 import SymTable.Var;
+import com.sun.org.apache.xpath.internal.operations.Div;
 import front.ASD.ASDNode;
 import front.ASD.ConstInitVal;
 import front.ASD.InitVal;
@@ -15,6 +16,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.regex.Pattern;
+
+import static mid.MidCode.Op.ADD;
+import static mid.MidCode.Op.ASSIGN;
+import static mid.MidCode.Op.SUB;
 
 public class MidCodeList {
     public ArrayList<MidCode> midCodes;
@@ -46,8 +51,8 @@ public class MidCodeList {
             end_tables.push(operand2);
             return null;
         }
-        if (instr.equals(MidCode.Op.PUSH_PARA) && midCodes.get(midCodes.size()-1).instr.equals(MidCode.Op.SIGNAL_ARR_ADDR)) {
-            midCodes.remove(midCodes.size()-1);
+        if (instr.equals(MidCode.Op.PUSH_PARA) && midCodes.get(midCodes.size() - 1).instr.equals(MidCode.Op.SIGNAL_ARR_ADDR)) {
+            midCodes.remove(midCodes.size() - 1);
             instr = MidCode.Op.PUSH_PARA_ARR;
         } else if (!instr.equals(MidCode.Op.PRINT)) {
             if (operand2.contains("[") && !instr.equals(MidCode.Op.ARR_LOAD)) { //array var must be load into temple var.
@@ -64,8 +69,7 @@ public class MidCodeList {
                         op2 = this.add(MidCode.Op.ARR_LOAD, "#AUTO", op2, "#VACANT");
                     }
                     operand1 = op1 + " " + op2;
-                }
-                else if (instr.equals(MidCode.Op.ASSIGN) || instr.equals(MidCode.Op.GETINT)){
+                } else if (instr.equals(MidCode.Op.ASSIGN) || instr.equals(MidCode.Op.GETINT)) {
                     if (instr.equals(MidCode.Op.ASSIGN)) {
                         operand2 = this.add(MidCode.Op.ASSIGN, "#AUTO", operand1, "#VACANT");
                     } else {
@@ -76,8 +80,7 @@ public class MidCodeList {
                     operand1 = this.add(MidCode.Op.ARR_LOAD, "#AUTO", operand1, "#VACANT");
                 }
             }
-        }
-        else {
+        } else {
             if (operand1.contains("[") && !operand2.equals("#STRCONS")) { //array var must be load into temple var.
                 operand1 = this.add(MidCode.Op.ARR_LOAD, "#AUTO", operand1, "#VACANT");
             }
@@ -124,11 +127,11 @@ public class MidCodeList {
             ignored.printStackTrace();
         }
         int i = 0;
-        for (String strCon: strCons) {
-            System.out.println("str" + i + ": " +  "\""+ strCon + "\"");
+        for (String strCon : strCons) {
+            System.out.println("str" + i + ": " + "\"" + strCon + "\"");
             i += 1;
         }
-        for (MidCode midCode: midCodes) {
+        for (MidCode midCode : midCodes) {
             System.out.println(midCode.toString());
         }
         System.setOut(out);
@@ -138,7 +141,7 @@ public class MidCodeList {
         String name = "";
         int end_addr = 4;
         ArrayList<SymItem> currentFuncTable = null;
-        for (MidCode midCode: midCodes) {
+        for (MidCode midCode : midCodes) {
             if (midCode.instr.equals(MidCode.Op.FUNC)) {
                 name = midCode.operand2;
                 currentFuncTable = funcTable.get(name);
@@ -153,7 +156,7 @@ public class MidCodeList {
             } else if (midCode.instr.equals(MidCode.Op.END_FUNC)) {
                 name = "";
             } else if (midCode.result.charAt(0) == '#' && midCode.result.charAt(1) == 'T') {
-                Var var = new Var(midCode.result, false, (InitVal) null, 0,  new ArrayList<Integer>(), "#inFunc");
+                Var var = new Var(midCode.result, false, (InitVal) null, 0, new ArrayList<Integer>(), "#inFunc");
                 end_addr = var.set_addr(end_addr);
                 if (currentFuncTable != null) {
                     currentFuncTable.add(var);
@@ -172,10 +175,10 @@ public class MidCodeList {
 
     public void remove_redundant_assign() {
         ArrayList<MidCode> new_midCodes = new ArrayList<>();
-        for (int i = 0; i < midCodes.size()-1; i+=1) {
+        for (int i = 0; i < midCodes.size() - 1; i += 1) {
             MidCode c1 = midCodes.get(i);
-            MidCode c2 = midCodes.get(i+1);
-            if (c2.instr.equals(MidCode.Op.ASSIGN)  &&
+            MidCode c2 = midCodes.get(i + 1);
+            if (c2.instr.equals(MidCode.Op.ASSIGN) &&
                     c1.result.charAt(0) == '#' && c1.result.equals(c2.operand2) && MidCode.is_arith(c1.instr)) {
                 new_midCodes.add(new MidCode(c1.instr, c1.operand1, c1.operand2, c2.operand1));
                 i += 1;
@@ -187,7 +190,7 @@ public class MidCodeList {
                     MidCode.is_arith(c2.instr)) {
                 new_midCodes.add(new MidCode(c2.instr, c2.operand1, c1.operand2, c2.result));
                 i += 1;
-            } else if (i == midCodes.size()-2) {
+            } else if (i == midCodes.size() - 2) {
                 new_midCodes.add(c1);
                 new_midCodes.add(c2);
             } else {
@@ -199,7 +202,7 @@ public class MidCodeList {
 
     public void swap_facter() {
         ArrayList<MidCode> new_midCode = new ArrayList<>();
-        for (MidCode midCode: midCodes) {
+        for (MidCode midCode : midCodes) {
             if (MidCode.is_arith(midCode.instr) && midCode.instr != MidCode.Op.DIV && begins_num(midCode.operand1) && !begins_num(midCode.operand2)) {
                 new_midCode.add(new MidCode(midCode.instr, midCode.operand2, midCode.operand1, midCode.result));
             } else {
@@ -211,7 +214,7 @@ public class MidCodeList {
 
     public void arith_to_assign() {
         ArrayList<MidCode> new_midCode = new ArrayList<>();
-        for (MidCode midCode: midCodes) {
+        for (MidCode midCode : midCodes) {
             if (midCode.instr == MidCode.Op.MUL && midCode.operand1.equals("1")) {
                 new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand2, "#VACANT"));
             } else if (midCode.instr == MidCode.Op.MUL && midCode.operand2.equals("1")) {
@@ -220,9 +223,9 @@ public class MidCodeList {
                 new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand1, "#VACANT"));
             } else if (midCode.instr == MidCode.Op.MOD && (midCode.operand1.equals("1") || midCode.operand2.equals("1"))) {
                 new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, "0", "#VACANT"));
-            } else if (midCode.instr == MidCode.Op.ADD && midCode.operand1.equals("0")) {
+            } else if (midCode.instr == ADD && midCode.operand1.equals("0")) {
                 new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand2, "#VACANT"));
-            } else if (midCode.instr == MidCode.Op.ADD && midCode.operand2.equals("0")) {
+            } else if (midCode.instr == ADD && midCode.operand2.equals("0")) {
                 new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand1, "#VACANT"));
             } else if (midCode.instr == MidCode.Op.SUB && midCode.operand2.equals("0")) {
                 new_midCode.add(new MidCode(MidCode.Op.ASSIGN, midCode.result, midCode.operand1, "#VACANT"));
@@ -233,7 +236,55 @@ public class MidCodeList {
         midCodes = new_midCode;
     }
 
+    public void remove_redundant_tmp() {
+        boolean modified;
+        do {
+            modified = false;
+            ArrayList<MidCode> new_midCodes = new ArrayList<>();
+            for (int i = 0; i < midCodes.size() - 1; i += 1) {
+                MidCode c1 = midCodes.get(i);
+                MidCode c2 = midCodes.get(i + 1);
+                if (c1.instr != MidCode.Op.ASSIGN && c2.instr != MidCode.Op.ASSIGN && !c2.result.equals("#VACANT")
+                        && !begins_num(c2.result) && !begins_num(c1.result) && !begins_num(c2.operand1) && c2.result.charAt(0) == '#'
+                        && c2.operand1.charAt(0) == '#' && c1.result.equals(c2.operand1) && begins_num(c1.operand2) && begins_num(c2.operand2)) {
+                    if (c1.instr == c2.instr) {
+                        if (c1.instr == MidCode.Op.ADD || c1.instr == MidCode.Op.SUB) {
+                            new_midCodes.add(new MidCode(c1.instr, c1.operand1, Integer.toString(Integer.parseInt(c1.operand2) + Integer.parseInt(c2.operand2)), c2.result));
+                            modified = true;
+                            i++;
+                        } else if (c1.instr == MidCode.Op.MUL || c1.instr == MidCode.Op.DIV) {
+                            new_midCodes.add(new MidCode(c1.instr, c1.operand1, Integer.toString(Integer.parseInt(c1.operand2) * Integer.parseInt(c2.operand2)), c2.result));
+                            modified = true;
+                            i++;
+                        } else {
+                            new_midCodes.add(c1);
+                        }
+                    } else if ((c1.instr == MidCode.Op.ADD && c2.instr == MidCode.Op.SUB) || (c1.instr == MidCode.Op.SUB && c2.instr == MidCode.Op.ADD)) {
+                        new_midCodes.add(new MidCode(c1.instr, c1.operand1, Integer.toString(Integer.parseInt(c1.operand2) - Integer.parseInt(c2.operand2)), c2.result));
+                        modified = true;
+                        i++;
+                    } else {
+                        new_midCodes.add(c1);
+                    }
+                } else if (c1.instr == ASSIGN && c2.instr == ASSIGN && c1.operand1.equals(c2.operand2) && c2.operand2.charAt(0) == '#') {
+                    new_midCodes.add(new MidCode(ASSIGN, c2.operand1, c1.operand2, "#VACANT"));
+                    modified = true;
+                    i++;
+                } else if (c1.instr == ASSIGN && c1.operand1.equals(c1.operand2)) {
+                    modified = true;
+                } else if (i == midCodes.size() - 2) {
+                    new_midCodes.add(c1);
+                    new_midCodes.add(c2);
+                } else {
+                    new_midCodes.add(c1);
+                }
+            }
+            midCodes = new_midCodes;
+        } while (modified);
+    }
+
     public static final Pattern IS_DIGIT = Pattern.compile("[0-9]*");
+
     public static boolean begins_num(String operand) {
         return IS_DIGIT.matcher(operand).matches() || operand.charAt(0) == '+' || operand.charAt(0) == '-';
     }

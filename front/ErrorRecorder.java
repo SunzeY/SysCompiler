@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 public class ErrorRecorder {
-    private static final ArrayList<Error> errors = new ArrayList<>();
+    private static ArrayList<Error> errors = new ArrayList<>();
 
     public static void recordError(Error error) {
         errors.add(error);
@@ -19,6 +19,13 @@ public class ErrorRecorder {
             System.setOut(os);
         } catch (IOException ignored) {
         }
+//        ArrayList<Error> removed_Errors = new ArrayList<>();
+//        for (Error error : errors) {
+//            if (!error.encode.get(error.errorType).equals("e")) {
+//                removed_Errors.add(error);
+//            }
+//        }
+//        errors = removed_Errors;
         errors.sort(Comparator.comparingInt(o -> o.lineNumber));
         ArrayList<Error> printedErrors = new ArrayList<>();
         for (Error error: errors) {
@@ -29,10 +36,10 @@ public class ErrorRecorder {
                     break;
                 }
             }
-            if(tag) System.out.println(error.toString());
+            if(tag && !error.toString().equals("-1 null")) System.out.println(error.toString());
             printedErrors.add(error);
-        }
 
+        }
         System.setOut(out);
     }
 

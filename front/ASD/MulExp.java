@@ -87,4 +87,8 @@ public class MulExp implements ASDNode{
         }
         return value;
     }
+
+    public boolean isFunCall() {
+        return this.unaryExps.size() == 1 && this.unaryExps.get(0).isFunCall();
+    }
 }

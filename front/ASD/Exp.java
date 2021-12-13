@@ -54,4 +54,8 @@ public class Exp implements ASDNode{
         }
         return null;
     }
+
+    public boolean isFunCall() {
+        return this.addExp.isFunCall();
+    }
 }

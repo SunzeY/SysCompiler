@@ -8,6 +8,10 @@ import java.util.ArrayList;
 
 public class UnaryExp implements ASDNode{
 
+    public boolean isFunCall() {
+        return this.type == Type.FuncCall || this.type == Type.PrimaryExp && ((PrimaryExp) this.asdNodes.get(0)).isFunCall();
+    }
+
     public enum Type {
         PrimaryExp, FuncCall, mulUnaryExp
     }
@@ -26,7 +30,7 @@ public class UnaryExp implements ASDNode{
         } else if (type.equals(Type.FuncCall)) {
             asdNodes.get(0).printTestInfo();
             System.out.println("LPARENT (");
-            if (asdNodes.size()> 1) {
+            if (asdNodes.size() > 1) {
                 asdNodes.get(1).printTestInfo();
             }
             System.out.println("RPARENT )");

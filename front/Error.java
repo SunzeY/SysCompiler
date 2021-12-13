@@ -3,7 +3,7 @@ package front;
 import java.util.HashMap;
 
 public class Error extends Exception{
-    private Type errorType;
+    public Type errorType;
     public int lineNumber;
     public enum Type {
         other_error,
