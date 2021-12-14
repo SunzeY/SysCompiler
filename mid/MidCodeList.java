@@ -19,6 +19,8 @@ import java.util.regex.Pattern;
 
 import static mid.MidCode.Op.ADD;
 import static mid.MidCode.Op.ASSIGN;
+import static mid.MidCode.Op.JUMP;
+import static mid.MidCode.Op.LABEL;
 import static mid.MidCode.Op.SUB;
 
 public class MidCodeList {
@@ -59,7 +61,7 @@ public class MidCodeList {
                 operand2 = this.add(MidCode.Op.ARR_LOAD, "#AUTO", operand2, "#VACANT");
             }
             if (operand1.contains("[") && !instr.equals(MidCode.Op.ARR_SAVE)) {
-                if (instr.equals(MidCode.Op.JUMP_IF)) {
+                if (instr.equals(MidCode.Op.JUMP_IF) || instr.equals(MidCode.Op.SET)) {
                     String op1 = operand1.split(" ")[0];
                     String op2 = operand1.split(" ")[1];
                     if (op1.contains("[")) {
@@ -281,6 +283,27 @@ public class MidCodeList {
             }
             midCodes = new_midCodes;
         } while (modified);
+    }
+
+    public void remove_redundant_jump() {
+        ArrayList<MidCode> new_midCode = new ArrayList<>();
+        for (int i = 0; i < midCodes.size(); i += 1) {
+            boolean can_remove = false;
+            if (midCodes.get(i).instr.equals(JUMP)) {
+                int k = i + 1;
+                while (k < midCodes.size() && midCodes.get(k).instr.equals(LABEL)) {
+                    if (midCodes.get(k).result.equals(midCodes.get(i).result)) {
+                        can_remove = true;
+                        break;
+                    }
+                    k += 1;
+                }
+            }
+            if (!can_remove) {
+                new_midCode.add(midCodes.get(i));
+            }
+        }
+        midCodes = new_midCode;
     }
 
     public static final Pattern IS_DIGIT = Pattern.compile("[0-9]*");

@@ -19,6 +19,7 @@ import java.util.HashMap;
 public class Compiler {
     public static int debugging = 2;
     private static final String inputFilePath = "testfile.txt";
+    public static boolean branch_opt = true;
 
 
     private static String readFile() throws IOException {
@@ -37,6 +38,7 @@ public class Compiler {
 
 
     public static void main(String[] args) throws IOException {
+        front.Compiler.branch_opt = branch_opt;
         LexicalAnalyser analyser = new LexicalAnalyser();
         analyser.analyze(readFile());
         if (debugging == 1) {
@@ -78,6 +80,7 @@ public class Compiler {
         midCodeList.arith_to_assign();
         midCodeList.remove_redundant_assign();
         midCodeList.remove_redundant_tmp();
+        midCodeList.remove_redundant_jump();
         midCodeList.printCode("testfilei_19375341_孙泽一_优化后中间代码.txt");
 
         // generate mips_code

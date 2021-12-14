@@ -55,4 +55,19 @@ public class LOrExp implements ASDNode{
         assert !bool_var.equals("");
         return bool_var;
     }
+
+    public void gen_mid_opt(MidCodeList midCodeList, String else_label, String endIf, ASDNode stmt) {
+        int index = 0;
+        for (LAndExp lAndExp : lAndExps) {
+            String next_or = midCodeList.alloc_label();
+            if (index == lAndExps.size() - 1) {
+                next_or = else_label;
+            }
+            lAndExp.gen_mid_opt(midCodeList, next_or, stmt, endIf);
+            if (!(index == lAndExps.size() - 1)) {
+                midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", next_or);
+            }
+            index += 1;
+        }
+    }
 }

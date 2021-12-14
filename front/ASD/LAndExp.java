@@ -55,4 +55,16 @@ public class LAndExp implements ASDNode{
         assert !bool_var.equals("");
         return bool_var;
     }
+
+    public void gen_mid_opt(MidCodeList midCodeList, String next_or, ASDNode stmt, String end_if) {
+        if (eqExps.size() == 1) {
+            eqExps.get(0).gen_mid_opt(midCodeList, next_or, stmt, end_if, true);
+            return;
+        }
+        for (EqExp eqExp : eqExps) {
+            eqExp.gen_mid_opt(midCodeList, next_or, stmt, end_if, false);
+        }
+        stmt.gen_mid(midCodeList);
+        midCodeList.add(MidCode.Op.JUMP, "#VACANT", "#VACANT", end_if);
+    }
 }

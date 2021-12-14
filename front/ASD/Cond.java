@@ -33,4 +33,9 @@ public class Cond implements ASDNode{
     public String gen_mid(MidCodeList midCodeList) {
         return this.asdNodes.get(0).gen_mid(midCodeList);
     }
+
+
+    public void gen_mid_opt(MidCodeList midCodeList, String else_label, String endIf, ASDNode stmt) {
+        this.lOrExp.gen_mid_opt(midCodeList, else_label, endIf, stmt);
+    }
 }

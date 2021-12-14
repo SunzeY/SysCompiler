@@ -100,6 +100,20 @@ public class MipsGenerator {
         put(">", "bgt");
     }};
 
+    public final HashMap<String, String> set_instr = new HashMap<String, String>() {{
+        put("!=", "sne");
+        put("==", "seq");
+        put(">=", "sge");
+        put("<=", "sle");
+        put("<", "slt");
+        put(">", "sgt");
+    }};
+
+    public final HashMap<String, String> set_instr_i = new HashMap<String, String>() {{
+        put("<", "slti");
+        // put(">", "sgti");
+    }};
+
     public MipsGenerator(ArrayList<mid.MidCode> midCodes, ArrayList<String> strCons, HashMap<String, ArrayList<SymItem>> funcTables, SymbolTable globalTable) {
         this.midCodes = midCodes;
         this.strCons = strCons;
@@ -609,6 +623,52 @@ public class MipsGenerator {
 
             } else if (instr.equals(MidCode.Op.LABEL)) {
                 generate(result + ":");
+
+            } else if (instr.equals(MidCode.Op.SET)) {
+                String num1 = operand1.split(" ")[0];
+                String num2 = operand1.split(" ")[1];
+                boolean a_in_reg = in_reg(result) || assign_reg(result, false);
+                boolean b_in_reg_or_const = is_const(num1) || in_reg(num1) || assign_reg(num1, true);
+                boolean c_in_reg = in_reg(num2) || assign_reg(num2, true);
+
+                String reg0 = "$a0";
+                String reg1 = "$a1";
+                String reg2 = "$a2";
+
+                String a = symbol_to_addr(result);
+                if (a_in_reg) {
+                    reg0 = a;
+                }
+                String b = symbol_to_addr(num1);
+                String c = symbol_to_addr(num2);
+                if (b_in_reg_or_const) {
+                    if (is_const(b)) {
+                        generate("li", reg1, b);
+                    } else {
+                        reg1 = b;
+                    }
+                } else {
+                    generate("lw", reg1, b);
+                }
+
+                if (is_const(c)) {
+                    if (set_instr_i.containsKey(operand2)) {
+                        generate(set_instr_i.get(operand2), reg0, reg1, c);
+                    } else {
+                        generate("li", reg2, c);
+                        generate(set_instr.get(operand2), reg0, reg1, c);
+                    }
+                } else {
+                    if (!c_in_reg) {
+                        generate("lw", reg2, c);
+                    } else {
+                        reg2 = c;
+                    }
+                    generate(set_instr.get(operand2), reg0, reg1, reg2);
+                }
+                if (!a_in_reg) {
+                    generate("sw", reg0, a);
+                }
             }
         }
 

@@ -60,4 +60,31 @@ public class EqExp implements ASDNode{
         assert !bool_var.equals("");
         return bool_var;
     }
+
+    public void gen_mid_opt(MidCodeList midCodeList, String next_or, ASDNode stmt, String end_if, boolean containsIfBlock) {
+        if (relExps.size() == 1) {
+            this.relExps.get(0).gen_mid_opt(midCodeList, next_or, stmt, end_if, true, containsIfBlock);
+        } else {
+            String left = relExps.get(0).gen_mid_opt(midCodeList, next_or, stmt, end_if, false, containsIfBlock);
+            for (int i = 1; i < relExps.size(); i++) {
+                String op = Ops.get(i - 1).getString();
+                String right = relExps.get(i).gen_mid_opt(midCodeList, next_or, stmt, end_if, false, containsIfBlock);
+                if (Ops.size() == i) {
+                    op = reverseOp(op);
+                    midCodeList.add(MidCode.Op.JUMP_IF, left + " " + right, op, next_or);
+                    if (containsIfBlock) {
+                        stmt.gen_mid(midCodeList);
+                        midCodeList.add(MidCode.Op.JUMP, "#VACANT", "#VACANT", end_if);
+                    }
+                } else {
+                    left = midCodeList.add(MidCode.Op.SET, left + " " + right, op, "#AUTO");
+                }
+            }
+        }
+    }
+
+    public String reverseOp(String op) {
+        return op.equals("==") ? "!=" :
+               op.equals("!=") ? "==" : "2333";
+    }
 }

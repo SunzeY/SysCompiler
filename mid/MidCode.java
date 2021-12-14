@@ -8,7 +8,7 @@ public class MidCode {
         GETINT, FUNC, END_FUNC, PREPARE_CALL, CALL,
         PUSH_PARA, RETURN, VAR_DEF, CONST_DEF,
         ARR_SAVE, ARR_LOAD,  PUSH_PARA_ARR,
-        JUMP_IF, JUMP, LABEL,
+        JUMP_IF, JUMP, LABEL, SET,
 
         // help_type
         SIGNAL_ARR_ADDR, NEW_BLOCK, EXIT_BLOCK, WHILE_BIND
@@ -38,6 +38,7 @@ public class MidCode {
         put(Op.JUMP_IF, "JUMP_IF");
         put(Op.JUMP, "JUMP");
         put(Op.LABEL, "LABEL");
+        put(Op.SET, "SET");
     }};
 
     public Op instr;
@@ -65,6 +66,9 @@ public class MidCode {
         }
         if (instr == Op.JUMP_IF) {
             return "JUMP_IF" + " " + operand1.split(" ")[0]  + " " + operand2 + " " + operand1.split(" ")[1]  +  " " + result;
+        }
+        if (instr == Op.SET) {
+            return "SET " + result + " := " + operand1.split(" ")[0]  + " " + operand2 + " " + operand1.split(" ")[1];
         }
         if (instr == Op.GETINT) {
             return operand1 + " = " + "input()";

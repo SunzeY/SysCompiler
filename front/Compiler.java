@@ -16,6 +16,7 @@ public class Compiler {
     private static final String inputFilePath = "testfile.txt";
     private static final String output1FilePath = "output1.txt";
     private static final String outputFilePath = "output.txt";
+    public static boolean branch_opt = false;
 
     private static String readFile() throws IOException {
         InputStream is = new FileInputStream(inputFilePath);
