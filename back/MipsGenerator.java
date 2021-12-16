@@ -345,10 +345,12 @@ public class MipsGenerator {
                 }
                 generate("syscall");
 
-            } else if (instr.equals(MidCode.Op.GETINT)) {
+            } else if (instr.equals(MidCode.Op.GETINT) || instr.equals(MidCode.Op.EMPTY_INPUT)) {
                 generate("li $v0, 5");
                 generate("syscall");
-                save_value("$v0", operand1);
+                if (instr.equals(MidCode.Op.GETINT)) {
+                    save_value("$v0", operand1);
+                }
             } else if (instr.equals(MidCode.Op.ASSIGN) || instr.equals(MidCode.Op.VAR_DEF) || instr.equals(MidCode.Op.CONST_DEF)) {
                 if (!operand2.equals("#VACANT")) {
                     gen_assign(operand1, operand2);

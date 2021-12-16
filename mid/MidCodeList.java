@@ -20,8 +20,9 @@ import java.util.regex.Pattern;
 import static mid.MidCode.Op.ADD;
 import static mid.MidCode.Op.ASSIGN;
 import static mid.MidCode.Op.JUMP;
+import static mid.MidCode.Op.JUMP_IF;
 import static mid.MidCode.Op.LABEL;
-import static mid.MidCode.Op.SUB;
+import static mid.MidCode.Op.SET;
 
 public class MidCodeList {
     public ArrayList<MidCode> midCodes;
@@ -285,6 +286,42 @@ public class MidCodeList {
         } while (modified);
     }
 
+    public void remove_redundant_arith() {
+        ArrayList<MidCode> new_midCode = new ArrayList<>();
+        for (MidCode midCode : midCodes) {
+            if (begins_num(midCode.operand1) && begins_num(midCode.operand2)) {
+                Integer res;
+                int left = Integer.parseInt(midCode.operand1);
+                int right = Integer.parseInt(midCode.operand2);
+                switch (midCode.instr) {
+                    case ADD:
+                        res = left + right;
+                        break;
+                    case SUB:
+                        res = left - right;
+                        break;
+                    case MUL:
+                        res = left * right;
+                        break;
+                    case DIV:
+                        res = left / right;
+                        break;
+                    case MOD:
+                        res = left % right;
+                        break;
+                    default:
+                        res = null;
+                }
+                if (res != null) {
+                    midCode.instr = ASSIGN;
+                    midCode.operand1 = midCode.result;
+                    midCode.operand2 = res.toString();
+                }
+            }
+        }
+        return;
+    }
+
     public void remove_redundant_jump() {
         ArrayList<MidCode> new_midCode = new ArrayList<>();
         for (int i = 0; i < midCodes.size(); i += 1) {
@@ -305,6 +342,41 @@ public class MidCodeList {
         }
         midCodes = new_midCode;
     }
+
+    public void remove_redundant_compare() {
+        ArrayList<MidCode> new_midCode = new ArrayList<>();
+        for (MidCode midCode : midCodes) {
+            if (midCode.instr == JUMP_IF && compare_is_const(midCode.operand1)) {
+                if (compare_is_true(midCode.operand1, midCode.operand2)) {
+                    new_midCode.add(new MidCode(JUMP, "#VACANT", "#VACANT", midCode.result));
+                } // else remove branch_instr
+            } else if (midCode.instr == SET && compare_is_const(midCode.operand1)) {
+                if (compare_is_true(midCode.operand1, midCode.operand2)) {
+                    new_midCode.add(new MidCode(ASSIGN, midCode.result, "1", "#VACANT"));
+                } else {
+                    new_midCode.add(new MidCode(ASSIGN, midCode.result, "0", "#VACANT"));
+                }
+            } else {
+                new_midCode.add(midCode);
+            }
+        }
+        midCodes = new_midCode;
+    }
+
+    private boolean compare_is_true(String operand1, String operand2) {
+        int left = Integer.parseInt(operand1.split(" ")[0]);
+        int right = Integer.parseInt(operand1.split(" ")[1]);
+        return operand2.equals("<") ? left < right :
+                operand2.equals(">") ? left > right :
+                        operand2.equals("<=") ? left <= right :
+                                operand2.equals(">=") ? left >= right :
+                                        operand2.equals("!=") ? left != right : operand2.equals("==") && left == right;
+    }
+
+    private boolean compare_is_const(String operand) {
+        return begins_num(operand.split(" ")[0]) && begins_num(operand.split(" ")[1]);
+    }
+
 
     public static final Pattern IS_DIGIT = Pattern.compile("[0-9]*");
 

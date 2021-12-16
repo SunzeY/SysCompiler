@@ -69,11 +69,11 @@ public class UnaryExp implements ASDNode{
             MidCode.Op op = type.equals("MINU") ? MidCode.Op.SUB :
                             type.equals("PLUS") ? MidCode.Op.ADD : MidCode.Op.NOT;
             if (op.equals(MidCode.Op.NOT)) {
-                String tmp = midCodeList.add(MidCode.Op.ASSIGN, "#AUTO", "1", "#VACANT");
-                String label = midCodeList.add(MidCode.Op.JUMP_IF, asdNodes.get(1).gen_mid(midCodeList) + " 0", "==", "#AUTO_LABEL");
-                midCodeList.add(MidCode.Op.ASSIGN, tmp, "0", "#VACANT");
-                midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", label);
-                return tmp;
+//                String tmp = midCodeList.add(MidCode.Op.ASSIGN, "#AUTO", "1", "#VACANT");
+//                String label = midCodeList.add(MidCode.Op.JUMP_IF, asdNodes.get(1).gen_mid(midCodeList) + " 0", "==", "#AUTO_LABEL");
+//                midCodeList.add(MidCode.Op.ASSIGN, tmp, "0", "#VACANT");
+//                midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", label);
+                return midCodeList.add(MidCode.Op.SET, asdNodes.get(1).gen_mid(midCodeList) + " 0", "==", "#AUTO");
             } else {
                 return midCodeList.add(op, "0", this.asdNodes.get(1).gen_mid(midCodeList), "#AUTO");
             }

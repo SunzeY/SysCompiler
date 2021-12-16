@@ -6,6 +6,7 @@ import front.ErrorRecorder;
 import front.LexicalAnalyser;
 import front.Parser;
 import SymTable.SymLinker;
+import mid.DataFlower;
 import mid.MidCodeList;
 
 import java.io.BufferedReader;
@@ -75,12 +76,26 @@ public class Compiler {
         SymbolTable global_table = symLinker.getBlockLoc2table().get("<0,0>");
         midCodeList.addTmp(funcTables, global_table);
 
+        for (int i = 0; i < 10; i++) {
+            // mid_code_optimization
+            midCodeList.remove_redundant_arith();
+            midCodeList.remove_redundant_compare();
+            midCodeList.arith_to_assign();
+            midCodeList.remove_redundant_assign();
+            midCodeList.remove_redundant_tmp();
+            midCodeList.remove_redundant_jump();
 
-        // mid_code_optimization
-        midCodeList.arith_to_assign();
-        midCodeList.remove_redundant_assign();
-        midCodeList.remove_redundant_tmp();
-        midCodeList.remove_redundant_jump();
+            // data_flow_analysis
+            DataFlower.define_point_ranking(midCodeList);
+            DataFlower.divide_base_block(midCodeList);
+            DataFlower.printBlockInfo("block_info_before.txt");
+            DataFlower.remove_redundant();
+            DataFlower.const_broadcast();
+            DataFlower.printBlockInfo("block_info_after.txt");
+
+            DataFlower.refresh(midCodeList);
+
+        }
         midCodeList.printCode("testfilei_19375341_孙泽一_优化后中间代码.txt");
 
         // generate mips_code

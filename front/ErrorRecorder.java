@@ -19,13 +19,6 @@ public class ErrorRecorder {
             System.setOut(os);
         } catch (IOException ignored) {
         }
-//        ArrayList<Error> removed_Errors = new ArrayList<>();
-//        for (Error error : errors) {
-//            if (!error.encode.get(error.errorType).equals("e")) {
-//                removed_Errors.add(error);
-//            }
-//        }
-//        errors = removed_Errors;
         errors.sort(Comparator.comparingInt(o -> o.lineNumber));
         ArrayList<Error> printedErrors = new ArrayList<>();
         for (Error error: errors) {
