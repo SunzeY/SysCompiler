@@ -187,11 +187,13 @@ public class Stmt implements ASDNode {
                     ((Cond) asdNodes.get(0)).gen_mid_opt(midCodeList, endJudgeIf, endJudgeIf, jump);
                     midCodeList.add(MidCode.Op.WHILE_BIND, judge_value, endJudgeIf, "#VACANT");
                     midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", begin_loop);
+                    midCodeList.add(MidCode.Op.ENTER_WHILE, "#VACANT", "#VACANT", "#VACANT");
                     asdNodes.get(1).gen_mid(midCodeList);
                     midCodeList.begin_tables.pop();
                     midCodeList.end_tables.pop();
                     ((Cond) asdNodes.get(0)).gen_mid_opt(midCodeList, endJudgeIf, endJudgeIf, jump);
                     midCodeList.add(MidCode.Op.LABEL, "#VACANT", "#VACANT", endJudgeIf);
+                    midCodeList.add(MidCode.Op.EXIT_WHILE, "#VACANT", "#VACANT", "#VACANT");
                 }
                 break;
             case breakStmt:

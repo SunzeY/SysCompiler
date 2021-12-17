@@ -1,5 +1,7 @@
 package mid;
 
+import com.sun.org.apache.bcel.internal.generic.CASTORE;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,7 +17,8 @@ public class MidCode {
         JUMP_IF, JUMP, LABEL, SET,
 
         // help_type
-        SIGNAL_ARR_ADDR, NEW_BLOCK, EXIT_BLOCK, WHILE_BIND, EMPTY, EMPTY_INPUT
+        SIGNAL_ARR_ADDR, NEW_BLOCK, EXIT_BLOCK, WHILE_BIND, EMPTY, EMPTY_INPUT, ENTER_WHILE,
+        EXIT_WHILE, FUNC_FORM_VAR_DEF
     }
 
     public final HashMap<Op, String> toString = new HashMap<Op, String>() {{
@@ -73,6 +76,9 @@ public class MidCode {
         if (instr == Op.EMPTY) {
             return "_E_M_P_T_Y_";
         }
+        if (instr == Op.FUNC_FORM_VAR_DEF) {
+            return "FUNC_FORM_VAR_DEF " + this.operand1;
+        }
         if (instr == Op.EMPTY_INPUT) {
             return "EMPTY_INPUT";
         }
@@ -122,6 +128,7 @@ public class MidCode {
             case VAR_DEF:
             case GETINT:
             case ARR_LOAD:
+            case FUNC_FORM_VAR_DEF:
                 this.define =  (!isVar(operand1)) ? null : this.operand1;
                 return this.define;
             case ADD:

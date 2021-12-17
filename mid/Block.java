@@ -71,9 +71,9 @@ public class Block {
         for (int i = midCodes.size() - 1; i >= 0; i--) {
             MidCode cur_code = midCodes.get(i);
             if (cur_code.get_def() != null && !un_defined_var.contains(cur_code.get_def())) {
-                System.out.println("========remove_redundant_code===========");
-                System.out.println(cur_code.toString());
-                System.out.println("========================================");
+//                System.out.println("========remove_redundant_code===========");
+//                System.out.println(cur_code.toString());
+//                System.out.println("========================================");
                 if (cur_code.instr == MidCode.Op.GETINT) {
                     cur_code.instr = MidCode.Op.EMPTY_INPUT;
                 } else {
@@ -95,9 +95,9 @@ public class Block {
             HashMap<String, String> var2const = new HashMap<>();
             for (String use_var : cur_code.get_use()) {
                 if (const_val_table.containsKey(use_var)) {
-                    System.out.println("===============const_broadcast=============");
-                    System.out.println(cur_code + "   " + use_var + "->" + const_val_table.get(use_var));
-                    System.out.println("===========================================");
+//                    System.out.println("===============const_broadcast=============");
+//                    System.out.println(cur_code + "   " + use_var + "->" + const_val_table.get(use_var));
+//                    System.out.println("===========================================");
                     can_broadcast = true;
                     var2const.put(use_var, const_val_table.get(use_var));
                 }
@@ -120,9 +120,6 @@ public class Block {
             for (String use_var : cur_code.get_use()) {
                 ArrayList<Integer> define_point = new ArrayList<>();
                 for (Integer def_index : in_arrive) {
-                    if (def_index.equals(5)) {
-                        System.out.println(DataFlower.d_index2code);
-                    }
                     if (DataFlower.d_index2code.get(def_index).get_def() != null && DataFlower.d_index2code.get(def_index).get_def().equals(use_var)) {
                         define_point.add(def_index);
                     }
@@ -144,12 +141,11 @@ public class Block {
                     }
                     if (!define_in_block) {
                         MidCode define_code = DataFlower.d_index2code.get(define_point.get(0));
-                        System.out.println(define_code);
                         if ((define_code.instr == MidCode.Op.VAR_DEF || define_code.instr == MidCode.Op.ASSIGN) && begins_num(define_code.operand2)) {
                             name2value.put(use_var, define_code.operand2);
-                            System.out.println("===============const_broadcast_across_base_block=============");
-                            System.out.println(cur_code + "   " + use_var + "->" + define_code.operand2);
-                            System.out.println("===========================================");
+//                            System.out.println("===============const_broadcast_across_base_block=============");
+//                            System.out.println(cur_code + "   " + use_var + "->" + define_code.operand2);
+//                            System.out.println("===========================================");
                         }
                     }
                 }

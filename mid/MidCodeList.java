@@ -1,5 +1,6 @@
 package mid;
 
+import SymTable.FuncFormVar;
 import SymTable.SymItem;
 import SymTable.SymbolTable;
 import SymTable.Var;
@@ -19,6 +20,8 @@ import java.util.regex.Pattern;
 
 import static mid.MidCode.Op.ADD;
 import static mid.MidCode.Op.ASSIGN;
+import static mid.MidCode.Op.FUNC;
+import static mid.MidCode.Op.FUNC_FORM_VAR_DEF;
 import static mid.MidCode.Op.JUMP;
 import static mid.MidCode.Op.JUMP_IF;
 import static mid.MidCode.Op.LABEL;
@@ -36,8 +39,11 @@ public class MidCodeList {
     public final Stack<String> begin_tables = new Stack<>();
     public final Stack<String> end_tables = new Stack<>();
 
-    public MidCodeList(HashMap<ASDNode, SymItem> node2symItem) {
+    public HashMap<String, ArrayList<SymItem>> curFuncTables;
+
+    public MidCodeList(HashMap<ASDNode, SymItem> node2symItem, HashMap<String, ArrayList<SymItem>> curFuncTables) {
         this.node2symItem = node2symItem;
+        this.curFuncTables = curFuncTables;
         this.midCodes = new ArrayList<>();
         this.tmpIndex = 0;
         this.strCons = new ArrayList<>();
@@ -118,6 +124,13 @@ public class MidCodeList {
             operand1 = "#str" + Integer.toString(strCons.size() - 1);
         }
         midCodes.add(new MidCode(instr, operand1, operand2, result));
+        if (instr.equals(FUNC)) {
+            for (SymItem symItem: curFuncTables.get(operand2)) {
+                if (symItem instanceof FuncFormVar && ((FuncFormVar) symItem).getDimension() == 0) {
+                    this.add(FUNC_FORM_VAR_DEF, symItem.getUniqueName(), "#VACANT", "#VACANT");
+                }
+            }
+        }
         return result;
     }
 

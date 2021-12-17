@@ -1,94 +1,81 @@
 package back;
 
 import SymTable.SymItem;
+import mid.Block;
+import mid.MidCode;
+import mid.VarConfliction;
 
 import javax.print.attribute.HashAttributeSet;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 
 public class RegAlloc {
-    public static final Integer TMP_VAR_INIT_CNT = 0;
-    public static final Integer VAR_INIT_CNT = 1;
-    public ArrayList<String> regs = new ArrayList<String>(){{
-        for (int i=0; i<10; i+=1) {
-            add("$t" + i);
+    public static final HashMap<String, HashSet<String>> funcVars = VarConfliction.funcVars;
+    public static final HashMap<String, Integer> var_weight = VarConfliction.var_weight;
+    public static final HashMap<String, ArrayList<String>> funcVarByWeight = new HashMap<String, ArrayList<String>>() {
+        private int compare(String x1, String x2) {
+            return (var_weight.get(x1) - var_weight.get(x2));
         }
-        for (int i=0; i<9; i+=1) {
-            add("$s" + i);
+
+        {
+        for (Map.Entry<String, HashSet<String>> funcVar: funcVars.entrySet()) {
+            ArrayList<String> vars = new ArrayList<>(funcVar.getValue());
+            vars.sort(this::compare);
+            put(funcVar.getKey(), vars);
         }
     }};
 
-    public int[] ref_cnt = new int[regs.size()];
+    public static final ArrayList<Block> blocks = VarConfliction.blocks;
 
-    public HashMap<String, String> indent2reg = new HashMap<>();
-    public HashMap<String, String> reg2Indent = new HashMap<>();
+    public static final HashMap<MidCode, Integer> midCode2Bno = VarConfliction.midCode2Bno;
 
-    public MipsGenerator generator;
-
-    public int pointer = 0;
-
-    private RegAlloc(MipsGenerator generator) {
-        this.generator = generator;
-        for (int i=0; i<regs.size(); i+=1) {
-            ref_cnt[i] = 0;
+    public HashMap<Integer, Block> bno2block = new HashMap<Integer, Block>(){{
+        for (Block block: VarConfliction.blocks) {
+            bno2block.put(block.bno, block);
         }
+    }};
+
+
+    public static ArrayList<String> reg_pool = new ArrayList<String>(){{
+        for (int i = 0; i < 8; i++) {
+            add("$s" + i);
+        }
+        add("$fp");
+    }};
+
+    public static String alloc_reg(String VarName, String funcName) {
+        ArrayList<String> funcTable = funcVarByWeight.get(funcName);
+        int i = funcTable.indexOf(VarName);
+        if (i > 8) {
+            return null;
+        }
+        return reg_pool.get(i);
     }
 
-    public String find(String indent) {
-        if (indent2reg.containsKey(indent)) { // already cached
-            return indent2reg.get(indent);
-            // TODO: modify pointer
-        }
-        int i = 0;
-        while(true) {
-            if (ref_cnt[(i + pointer) % regs.size()] != 0) {
-                ref_cnt[(i + pointer) % regs.size()] -= 1;
-                i += 1;
-            } else {
-                // write back
-                String allocated_reg = regs.get((i + pointer) % regs.size());
-                String pre_indent = reg2Indent.get(allocated_reg);
-                allocReg(pre_indent, (i+pointer)%regs.size(), false);
-
-                // fill new
-                indent2reg.put(indent, allocated_reg);
-                reg2Indent.put(allocated_reg, indent);
-                allocReg(indent, (i+pointer)%regs.size(), true);
-
-                // modify ref_cnt
-                if (indent.charAt(0) == '#') {
-                    ref_cnt[(i + pointer) % regs.size()] = TMP_VAR_INIT_CNT;
-                } else {
-                    ref_cnt[(i + pointer) % regs.size()] = VAR_INIT_CNT;
+    public static final HashMap<MidCode, HashSet<String>> alive_vars = new HashMap<MidCode, HashSet<String>>(){{
+        for (Block block: blocks) {
+            for (int i = 0; i < block.midCodes.size(); i++) {
+                HashSet<String> alive_var = new HashSet<>(block.out);
+                alive_var.addAll(block.in);
+                for (int j = i + 1; j < block.midCodes.size(); j++) {
+                    alive_var.addAll(block.midCodes.get(j).get_use());
                 }
-                return allocated_reg;
+                put(block.midCodes.get(i), alive_var);
             }
         }
-    }
+    }};
 
-
-    public void allocReg(String indent, int index, boolean fill) {
-        SymItem curItem = null;
-        String reg = regs.get(index);
-        if (!generator.currentFunc.equals("")) {
-            for (SymItem item : generator.funcTables.get(generator.currentFunc)) {
-                if (item.getUniqueName().equals(indent)) {
-                    curItem = item;
-                    break;
+    public static void try_release_s_reg(ArrayList<String> sRegTable, MidCode midCode, ArrayList<String> mipsCodes) {
+        if (alive_vars.containsKey(midCode)) {
+            for (int i = 0; i < sRegTable.size(); i++) {
+                String var = sRegTable.get(i);
+                if (!var.startsWith("#") && var_weight.containsKey(var) && var_weight.get(var) == 1 && !alive_vars.get(midCode).contains(var)) {
+                    mipsCodes.add("# release s_reg["+i+"] bind " + sRegTable.get(i));
+                    sRegTable.set(i, "#VACANT");
                 }
             }
         }
-        if (curItem == null) {
-            for (SymItem item : generator.globalTable.symItems) {
-                if (item.getUniqueName().equals(indent)) {
-                    generator.generate((fill ? "lw " : "sw ") + reg + ", " + (item.getAddr() - generator.globalsize) + "($gp)");
-                    return;
-                }
-            }
-        }
-        assert curItem != null;
-        generator.generate((fill ? "lw " : "sw ") + reg + ", " + (generator.call_func_sp_offset + curItem.getAddr()) + "($sp)");
     }
-
-
 }

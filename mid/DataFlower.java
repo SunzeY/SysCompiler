@@ -1,12 +1,18 @@
 package mid;
 
+import SymTable.FuncFormVar;
+import SymTable.SymItem;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import static mid.MidCode.Op.ENTER_WHILE;
 import static mid.MidCode.Op.EXIT_BLOCK;
+import static mid.MidCode.Op.EXIT_WHILE;
+import static mid.MidCode.Op.FUNC;
 import static mid.MidCode.Op.NEW_BLOCK;
 import static mid.MidCode.Op.SIGNAL_ARR_ADDR;
 
@@ -44,6 +50,8 @@ public class DataFlower {
         add(SIGNAL_ARR_ADDR);
         add(NEW_BLOCK);
         add(EXIT_BLOCK);
+        add(ENTER_WHILE);
+        add(EXIT_WHILE);
     }};
 
     public static void divide_base_block(MidCodeList midCodeList) {
@@ -187,7 +195,6 @@ public class DataFlower {
             modified = false;
             for (Block block : blocks) {
                 for (int precursor_bno : block.precursors) {
-                    System.out.println(precursor_bno);
                     if (precursor_bno != START) block.in_arrive.addAll(bno2block.get(precursor_bno).out_arrive);
                 }
                 HashSet<Integer> new_out = new HashSet<Integer>(block.gen);

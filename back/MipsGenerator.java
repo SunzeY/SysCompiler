@@ -671,7 +671,9 @@ public class MipsGenerator {
                 if (!a_in_reg) {
                     generate("sw", reg0, a);
                 }
+
             }
+            RegAlloc.try_release_s_reg(sRegTable, code, mipsCodes);
         }
 
     }

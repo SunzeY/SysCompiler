@@ -8,6 +8,7 @@ import front.Parser;
 import SymTable.SymLinker;
 import mid.DataFlower;
 import mid.MidCodeList;
+import mid.VarConfliction;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -68,15 +69,17 @@ public class Compiler {
         }
 
         //generate mid_code
+        HashMap<String, ArrayList<SymItem>> funcTables = symLinker.getFuncTable();
         System.out.println("finish parsing your code, start generating mid-code...");
-        MidCodeList midCodeList = new MidCodeList(symLinker.node2tableItem);
+        MidCodeList midCodeList = new MidCodeList(symLinker.node2tableItem, funcTables);
         unit.gen_mid(midCodeList);
         midCodeList.printCode("testfilei_19375341_孙泽一_优化前中间代码.txt");
-        HashMap<String, ArrayList<SymItem>> funcTables = symLinker.getFuncTable();
         SymbolTable global_table = symLinker.getBlockLoc2table().get("<0,0>");
         midCodeList.addTmp(funcTables, global_table);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 20; i++) {
+            DataFlower.refresh(midCodeList);
+
             // mid_code_optimization
             midCodeList.remove_redundant_arith();
             midCodeList.remove_redundant_compare();
@@ -88,14 +91,13 @@ public class Compiler {
             // data_flow_analysis
             DataFlower.define_point_ranking(midCodeList);
             DataFlower.divide_base_block(midCodeList);
-            DataFlower.printBlockInfo("block_info_before.txt");
+            // DataFlower.printBlockInfo("block_info_before.txt");
             DataFlower.remove_redundant();
             DataFlower.const_broadcast();
             DataFlower.printBlockInfo("block_info_after.txt");
-
-            DataFlower.refresh(midCodeList);
-
         }
+
+        VarConfliction.get_func_vars(midCodeList);
         midCodeList.printCode("testfilei_19375341_孙泽一_优化后中间代码.txt");
 
         // generate mips_code
