@@ -82,6 +82,44 @@ public class SymLinker {
         return res;
     }
 
+    public void travel_to_link_value(ASDNode node) {
+        if (node == null) {
+            return;
+        }
+        if (node instanceof PrimaryExp && ((PrimaryExp) node).lVal != null) {
+            LVal lVal = ((PrimaryExp) node).lVal;
+            SymItem item = findInStack(lVal.indent.getName(), lVal.indent, "Var", false);
+            if (item == null) {
+                return;
+            }
+            if (item.isConst() && item instanceof Var) {
+                Var var = (Var) item;
+                ArrayList<String> initValues = new ArrayList<>();
+                var.constInitVal.getInitValue(initValues);
+                if (lVal.exps.size() == ((Var) item).getShape().size()) {
+                    String value = "";
+                    if (lVal.exps.size() == 0) {
+                        value = initValues.get(0);
+                    } else if (lVal.exps.size() == 1) {
+                        if (lVal.exps.get(0).getValue() != null) { //constExp
+                            value = initValues.get(lVal.exps.get(0).getValue());
+                        }
+                    } else if (lVal.exps.size() == 2) {
+                        if (lVal.exps.get(0).getValue() != null && lVal.exps.get(1).getValue() != null) {
+                            value = initValues.get(var.getShape().get(1) * lVal.exps.get(0).getValue() + lVal.exps.get(1).getValue());
+                        }
+                    }
+                    if (!value.equals("")) {
+                        ((PrimaryExp) node).value = value;
+                    }
+                }
+            }
+        }
+        for (ASDNode asdNode: node.getChild()) {
+            travel_to_link_value(asdNode);
+        }
+    }
+
     private void travel(ASDNode node, ASDNode funcFormalArgs) throws Error {
         if (node == null) {
             return;
@@ -135,6 +173,7 @@ public class SymLinker {
             stack.add(item);
             node2tableItem.put(((FuncDef) node).getIndent(), item);
             funcTable = new ArrayList<>();
+            travel_to_link_value(node.getChild().get(node.getChild().size() - 3));
             travel(node.getChild().get(node.getChild().size() - 2), node.getChild().get(node.getChild().size() - 3)); //函数形参需要加入符号表
             funcSymbolsTables.put(name, (ArrayList<SymbolTable>) funcTable.clone());
             funcTable = new ArrayList<>();
@@ -326,6 +365,7 @@ public class SymLinker {
             travelForCheck(root);
             funcSymbolsTables.put("main", (ArrayList<SymbolTable>) funcTable.clone());
         } catch (Error ignored) {
+            ignored.printStackTrace();
         }
         blockLoc2table.put("<0,0>", currentTable);
     }

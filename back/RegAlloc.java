@@ -68,12 +68,21 @@ public class RegAlloc {
     }};
 
     public static void try_release_s_reg(ArrayList<String> sRegTable, MidCode midCode, ArrayList<String> mipsCodes) {
+        for (String s_reg: sRegTable) {
+            if (s_reg.equals("#VACANT")) {
+                return;
+            }
+        }
         if (alive_vars.containsKey(midCode)) {
             for (int i = 0; i < sRegTable.size(); i++) {
                 String var = sRegTable.get(i);
-                if (!var.startsWith("#") && var_weight.containsKey(var) && var_weight.get(var) == 1 && !alive_vars.get(midCode).contains(var)) {
+                if (midCode.get_use().contains(sRegTable.get(i)) || (midCode.get_def() != null) && midCode.get_def().equals(sRegTable.get(i))) {
+                    continue;
+                }
+                if (!var.startsWith("#") && var_weight.containsKey(var) && var_weight.get(var) < 30 && !alive_vars.get(midCode).contains(var)) {
                     mipsCodes.add("# release s_reg["+i+"] bind " + sRegTable.get(i));
                     sRegTable.set(i, "#VACANT");
+                    return;
                 }
             }
         }

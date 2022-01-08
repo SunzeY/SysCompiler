@@ -20,15 +20,19 @@ import java.util.regex.Pattern;
 
 import static mid.MidCode.Op.ADD;
 import static mid.MidCode.Op.ASSIGN;
+import static mid.MidCode.Op.EMPTY;
+import static mid.MidCode.Op.EMPTY_INPUT;
+import static mid.MidCode.Op.EXIT_BLOCK;
 import static mid.MidCode.Op.FUNC;
 import static mid.MidCode.Op.FUNC_FORM_VAR_DEF;
 import static mid.MidCode.Op.JUMP;
 import static mid.MidCode.Op.JUMP_IF;
 import static mid.MidCode.Op.LABEL;
+import static mid.MidCode.Op.NEW_BLOCK;
 import static mid.MidCode.Op.SET;
 
 public class MidCodeList {
-    public ArrayList<MidCode> midCodes;
+    public ArrayList<MidCode> midCodes = new ArrayList<>();
     public int tmpIndex;
     public int label_cnt;
     public ArrayList<String> strCons;
@@ -151,6 +155,17 @@ public class MidCodeList {
             System.out.println(midCode.toString());
         }
         System.setOut(out);
+    }
+
+    public void remove_useless_code() {
+        ArrayList<MidCode> new_midCodes = new ArrayList<>();
+        for (MidCode midCode: this.midCodes) {
+            if (midCode.instr == NEW_BLOCK || midCode.instr == EXIT_BLOCK) {
+            } else {
+                new_midCodes.add(midCode);
+            }
+        }
+        this.midCodes = new_midCodes;
     }
 
     public void addTmp(HashMap<String, ArrayList<SymItem>> funcTable, SymbolTable global_table) {

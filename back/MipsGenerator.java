@@ -29,6 +29,8 @@ public class MipsGenerator {
 
     public final Stack<Integer> prepare_cnt = new Stack<>();
 
+    public int index;
+
     public HashMap<String, Integer> globalArrayAddr = new HashMap<>();
     public int globalsize = 0;
     public int tmp_label_idx = 1;
@@ -53,6 +55,13 @@ public class MipsGenerator {
     }};
 
     public String assignSReg(String name) {
+        for (int i = 0; i < sRegTable.size(); i++) {
+            if (sRegTable.get(i).equals("#VACANT")) {
+                sRegTable.set(i, name);
+                return (i == sRegTable.size() - 1) ? "$fp" : ("$s" + i);
+            }
+        }
+        RegAlloc.try_release_s_reg(sRegTable, midCodes.get(this.index), mipsCodes);
         for (int i = 0; i < sRegTable.size(); i++) {
             if (sRegTable.get(i).equals("#VACANT")) {
                 sRegTable.set(i, name);
@@ -213,7 +222,9 @@ public class MipsGenerator {
         generate(".text");
         boolean init = true;
         generate("addi $gp, $gp, " + this.globalsize);
-        for (MidCode code : midCodes) {
+        this.index = 0;
+        for (this.index = 0; index < midCodes.size(); index += 1) {
+            MidCode code = midCodes.get(this.index);
             mipsCodes.add("# ====" + code + "====");
             MidCode.Op instr = code.instr;
             String operand1 = code.operand1;
@@ -673,7 +684,7 @@ public class MipsGenerator {
                 }
 
             }
-            RegAlloc.try_release_s_reg(sRegTable, code, mipsCodes);
+            // RegAlloc.try_release_s_reg(sRegTable, code, mipsCodes);
         }
 
     }

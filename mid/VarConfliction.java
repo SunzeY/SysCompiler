@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class VarConfliction {
     
-    public static final int LOOP_FACTOR = 10;
+    public static final int LOOP_FACTOR = 30;
     public static final HashMap<String, HashSet<String>> funcVars = new HashMap<>();
     public static final HashMap<String, Integer> var_weight = new HashMap<>();
     public static final HashMap<Integer, Block> d_index2Block = new HashMap<>();
@@ -42,7 +42,7 @@ public class VarConfliction {
             if (midCode.instr == MidCode.Op.ENTER_WHILE) {
                 weight = weight * LOOP_FACTOR;
             } else if (midCode.instr == MidCode.Op.EXIT_WHILE) {
-                weight = weight / 10;
+                weight = weight / LOOP_FACTOR;
             } else if (midCode.instr == MidCode.Op.FUNC) {
                 currentFuncName = midCode.operand2;
                 currentFuncVars = new HashSet<>();
